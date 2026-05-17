@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html class="dark" lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Experience premium luxury sushi at Nori & Rice. Interactive visual table booking, dynamic menus, and customized Japanese gourmet rolls." />
+    <meta name="keywords" content="Sushi Restaurant, Nori and Rice, Luxury Sushi, Table Booking, Interactive Seating Chart, Custom Sushi Rolls, Alexandria Seafood" />
+    <title>نوري & رايس | لاونج السوشي الفاخر</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=32&q=80">
+
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS (For structural grid and layouts) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- Shared Tailwind Configuration for luxury dark colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#c18c64',   /* Warm Beige-Gold */
+                        secondary: '#d4a17b', /* Gold-Bronze Accent */
+                        abyss: {
+                            main: '#0b272a',  /* Very Dark Blue-Green */
+                            card: '#132f34',  /* Lighter Dark Blue-Green */
+                            border: 'rgba(232, 213, 192, 0.08)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Design System & Seating Map Layout styles -->
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+
+<body class="bg-abyss-main text-white font-['Tajawal'] antialiased rtl-mode">
+
+    <!-- --- Header & Navigation Bar --- -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-white/5 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+            
+            <!-- Elegant Brand Name -->
+            <a href="javascript:void(0)" onclick="switchView('home')" class="flex items-center select-none">
+                <img src="./asseat/only logo.jpg" alt="Nori & Rice" class="h-10 md:h-12 object-contain" />
+            </a>
+
+            <!-- Desktop Navigation Links -->
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="javascript:void(0)" onclick="switchView('home')" id="nav-home" class="text-sm font-bold text-white hover:text-primary transition-colors" data-i18n="nav_menu">القائمة</a>
+                <a href="javascript:void(0)" onclick="switchView('contact')" id="nav-contact" class="text-sm font-bold text-slate-400 hover:text-primary transition-colors" data-i18n="nav_contact">اتصل بنا</a>
+            </nav>
+
+            <!-- Action Controls (Language & Basket) -->
+            <div class="flex items-center gap-2 md:gap-4">
+                
+                <!-- Language Switcher button -->
+                <button onclick="toggleLanguage()" class="px-2.5 py-1.5 md:px-4 md:py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] md:text-xs font-black text-white transition-all flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[13px] md:text-[16px]">translate</span>
+                    <span id="lang-toggle-text">English</span>
+                </button>
+
+                <!-- Basket Icon button -->
+                <button onclick="toggleCart()" class="relative p-2 md:p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all flex items-center justify-center border border-white/10">
+                    <span class="material-symbols-outlined text-white text-[18px] md:text-[24px]">shopping_basket</span>
+                    <span id="cart-badge" class="absolute -top-2 -right-2 bg-primary text-white text-[12px] font-black w-6 h-6 rounded-full flex items-center justify-center border border-2 border-abyss-main hidden animate-pulse">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- --- Premium Hero Banner Section --- -->
+    <section id="hero-section" class="relative overflow-hidden mb-16">
+        <div class="hero-slider-wrap">
+            <img class="hero-img-bg" src="https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=1600&q=80" alt="Sushi Counter Lounge">
+            <div class="hero-overlay-dark"></div>
+            
+            <div class="absolute inset-0 z-10 max-w-7xl mx-auto px-6 flex flex-col justify-end pb-16 md:pb-24">
+                <div class="max-w-2xl text-start animate-slide-up">
+                    <span class="inline-block px-4 py-1.5 bg-secondary/15 text-secondary border border-secondary/20 rounded-full text-xs font-black uppercase tracking-[3px] mb-4">THE IMPERIAL EXPERIENCE</span>
+                    <h1 class="text-4xl md:text-7xl font-black text-white font-serif leading-tight mb-4" data-i18n="hero_title">نوري & رايس</h1>
+                    <p class="text-base md:text-xl text-slate-300 mb-8" data-i18n="hero_subtitle">تجربة سوشي استثنائية تمتزج فيها الأصالة بالفخامة المعاصرة</p>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="document.getElementById('menu-section').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 bg-primary text-white font-bold rounded-2xl transition-all duration-300 active:scale-95 salmon-glow text-sm" data-i18n="hero_btn_menu">استكشف المنيو</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- --- Main Content Container --- -->
+    <main class="max-w-7xl mx-auto px-6 pb-24">
+        
+        <div id="home-view" class="view-panel">
+            <!-- ==================== MENU SECTION ==================== -->
+            <section id="menu-section" class="scroll-mt-24 mb-24">
+            
+            <!-- Section Header -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-white/5 pb-6">
+                <div>
+                    <span class="text-xs text-primary font-black uppercase tracking-[4px]">NORI & RICE SELECTIONS</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-white font-serif mt-1" data-i18n="nav_menu">قائمة الطعام الفاخرة</h2>
+                </div>
+            </div>
+
+            <!-- Menu Mode Toggle Switch -->
+            <div class="flex justify-center mb-10">
+                <div class="bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center gap-1">
+                    <button id="toggle-book-mode" onclick="setMenuMode('book')" class="px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 bg-primary text-white">
+                        <span class="material-symbols-outlined text-sm">menu_book</span>
+                        <span data-i18n="menu_mode_book">كتاب المنيو التفاعلي</span>
+                    </button>
+                    <button id="toggle-grid-mode" onclick="setMenuMode('grid')" class="px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 text-slate-400 hover:text-white">
+                        <span class="material-symbols-outlined text-sm">grid_view</span>
+                        <span data-i18n="menu_mode_grid">العرض الشبكي</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- --- Shoppable Interactive Book Section --- -->
+            <div id="book-menu-wrapper" class="w-full flex flex-col items-center justify-center py-6">
+                <!-- Flipbook Container -->
+                <div class="flipbook-outer flex items-center justify-center w-full max-w-[900px] overflow-visible relative px-4">
+                    
+                    <!-- Book Navigation Buttons (Left/Right Arrows) -->
+                    <button onclick="flipbookPrevPage()" class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90">
+                        <span class="material-symbols-outlined">arrow_back_ios</span>
+                    </button>
+                    
+                    <!-- The actual 3D Book -->
+                    <div class="sushi-book" id="sushi-book">
+                        <!-- Page 1 (Cover Front & Back) -->
+                        <div class="book-page active-page" id="book-page-1" style="z-index: 10;">
+                            <div class="page-front cover-front flex flex-col justify-between items-center text-center p-8">
+                                <div class="w-full flex justify-end">
+                                    <span class="text-[9px] border border-secondary/30 text-secondary font-black px-2 py-0.5 rounded-full uppercase tracking-wider">LIMITED EDITION</span>
+                                </div>
+                                <div class="my-auto">
+                                    <img src="./asseat/only logo remove background.png" alt="Nori & Rice Logo" class="w-28 md:w-36 mx-auto mb-6 object-contain drop-shadow-2xl">
+                                    <h2 class="text-3xl md:text-5xl font-black text-white font-serif leading-tight">Nori &amp; Rice</h2>
+                                    <div class="w-16 h-0.5 bg-secondary mx-auto my-4"></div>
+                                    <p class="text-xs text-slate-400 tracking-[3px] uppercase font-black" data-i18n="site_title">لاونج السوشي الفاخر</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-1 animate-pulse">
+                                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider" data-i18n="tap_to_flip">اضغط لفتح الكتاب</span>
+                                    <span class="material-symbols-outlined text-sm">double_arrow</span>
+                                </div>
+                            </div>
+                            <div class="page-back flex flex-col justify-between p-6 md:p-8 bg-[#101015]">
+                                <!-- Chef Message Page -->
+                                <div class="text-start">
+                                    <span class="text-xs text-primary font-black uppercase tracking-widest">A MESSAGE FROM THE CHEF</span>
+                                    <h3 class="text-xl md:text-2xl font-bold text-white font-serif mt-1 mb-4" data-i18n="book_chef_title">فلسفتنا في الطهي</h3>
+                                    <p class="text-xs text-slate-400 leading-relaxed mb-4" data-i18n="book_chef_text">كل قطعة سوشي نقدمها لكم هي نتاج سنوات من الخبرة الشغوفة، ننتقي أجود قطع الأسماك الأسكتلندية والأرز الياباني المصقول بعناية، لنرسم لوحة فنية تشبع حواسكم الفاخرة.</p>
+                                    <div class="w-12 h-[1px] bg-white/10 my-4"></div>
+                                    <div class="flex items-center gap-3">
+                                        <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=80&q=80" alt="Executive Chef" class="w-10 h-10 rounded-full object-cover border border-white/10">
+                                        <div>
+                                            <h4 class="text-xs font-bold text-white">Kenji Sato</h4>
+                                            <span class="text-[9px] text-secondary font-black uppercase">EXECUTIVE SUSHI CHEF</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page 2 (Signature Special Rolls Front & Back) -->
+                        <div class="book-page" id="book-page-2" style="z-index: 9;">
+                            <div class="page-front p-6 md:p-8 bg-[#0c0c10] flex flex-col justify-between">
+                                <!-- Page content: Special Rolls 1 -->
+                                <div class="text-start flex-grow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span class="text-xs text-secondary font-black uppercase tracking-wider">SPECIAL SELECTIONS</span>
+                                            <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5" data-i18n="filter_specialrolls">رولز التوقيع الفاخرة</h3>
+                                        </div>
+                                        <span class="px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-md text-[9px] font-black uppercase">HOT SELLER</span>
+                                    </div>
+                                    
+                                    <!-- Volcano roll item display inside book -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all mb-4">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">فولكانو رول الأسطوري</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">كابوريا، أفوكادو، سلمون مشوي، مايونيز ياباني حار وصوص ترياكي حلو.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">240 ج.م</span>
+                                                <button onclick="openCustomizer('volcano_roll')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dragon roll item display -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">دراجون رول الذهبي</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">روبيان تمبورا، خيار، ثعبان البحر (أوناغي) وأفوكادو ورقائق الذهب.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">260 ج.م</span>
+                                                <button onclick="openCustomizer('dragon_roll')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 2</span>
+                                </div>
+                            </div>
+                            <div class="page-back p-6 md:p-8 bg-[#101015] flex flex-col justify-between">
+                                <!-- Page content: Special Rolls 2 & Nigiri -->
+                                <div class="text-start flex-grow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span class="text-xs text-secondary font-black uppercase tracking-wider">SPECIAL SELECTIONS</span>
+                                            <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5" data-i18n="filter_specialrolls">رولز التوقيع الفاخرة</h3>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tiger Tempura item display -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all mb-4">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1583623025817-d180a2221d0a?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">تايجر تمبورا المقرمش</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">روبيان تمبورا، جبن كريمي مقلي بالكامل بطبقة البانكو وشرائح هالبينو.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">195 ج.م</span>
+                                                <button onclick="openCustomizer('tiger_tempura')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Shoyu Ramen item display -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">رامن الشويو بالدجاج الفاخر</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">نودلز يابانية طازجة في مرق الصويا الغني المطهو لمدة 12 ساعة وشرائح دجاج.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">185 ج.م</span>
+                                                <button onclick="addToOrderSimple('shoyu_ramen')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">shopping_basket</span>
+                                                    <span data-i18n="btn_add_order">إضافة</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 3</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page 3 (Royal Nigiri & Sashimi Front & Back) -->
+                        <div class="book-page" id="book-page-3" style="z-index: 8;">
+                            <div class="page-front p-6 md:p-8 bg-[#0c0c10] flex flex-col justify-between">
+                                <!-- Page content: Nigiri -->
+                                <div class="text-start flex-grow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span class="text-xs text-secondary font-black uppercase tracking-wider">TRADITIONAL ART</span>
+                                            <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5" data-i18n="filter_nigiri">نيجيري & ساشيمي فاخر</h3>
+                                        </div>
+                                    </div>
+
+                                    <!-- Salmon Nigiri -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all mb-4">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1633478062482-790e3b5dd810?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">نيجيري سلمون ملكي</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">شرائح سميكة من السلمون الأسكتلندي الطازج فوق أرز السوشي المتبل بخل الأرز الياباني.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">90 ج.م</span>
+                                                <button onclick="openCustomizer('salmon_nigiri')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Unagi Nigiri -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1579871494481-22d7ba56920f?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">نيجيري ثعبان البحر (أوناغي)</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">أوناغي مشوي على الفحم ببطء ومتبل بصوص الكاباياكي الحلو وشريط نوري.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">110 ج.م</span>
+                                                <button onclick="openCustomizer('unagi_nigiri')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 4</span>
+                                </div>
+                            </div>
+                            <div class="page-back p-6 md:p-8 bg-[#101015] flex flex-col justify-between">
+                                <!-- Page content: Sashimi & Temaki -->
+                                <div class="text-start flex-grow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span class="text-xs text-secondary font-black uppercase tracking-wider">TRADITIONAL ART</span>
+                                            <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5" data-i18n="filter_sashimi">نيجيري & ساشيمي فاخر</h3>
+                                        </div>
+                                    </div>
+
+                                    <!-- Salmon Sashimi -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all mb-4">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">ساشيمي سلمون كلاسيكي</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">5 قطع من شرائح السلمون الأسكتلندي الطازج عالية الجودة مقطعة على الطريقة اليابانية.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">180 ج.م</span>
+                                                <button onclick="openCustomizer('salmon_sashimi')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bluefin Tuna Sashimi -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1628142187880-76fc4dc0f39f?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">ساشيمي تونا حمراء (ماجورو)</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">5 قطع من التونة ذات الزعانف الزرقاء الفاخرة، غنية بالنكهة ولونها أحمر ياقوتي ساحر.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">210 ج.م</span>
+                                                <button onclick="openCustomizer('maguro_sashimi')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">tune</span>
+                                                    <span data-i18n="btn_customize">تخصيص</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 5</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page 4 (Matcha Desserts & Drinks / Back Cover Front & Back) -->
+                        <div class="book-page" id="book-page-4" style="z-index: 7;">
+                            <div class="page-front p-6 md:p-8 bg-[#0c0c10] flex flex-col justify-between">
+                                <!-- Page content: Drinks & Desserts -->
+                                <div class="text-start flex-grow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span class="text-xs text-secondary font-black uppercase tracking-wider">SWEET MATCHA &amp; DRINKS</span>
+                                            <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5" data-i18n="filter_drinks">المشروبات والحلويات اليابانية</h3>
+                                        </div>
+                                    </div>
+
+                                    <!-- Matcha Mochi Ice Cream -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all mb-4">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">موتشي آيس كريم الياباني</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">3 قطع من حلوى الموتشي المحشوة بآيس كريم الماتشا، الفانيليا والمانجو.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">95 ج.م</span>
+                                                <button onclick="addToOrderSimple('mochi_ice_cream')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">shopping_basket</span>
+                                                    <span data-i18n="btn_add_order">إضافة</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Iced Strawberry Matcha Latte -->
+                                    <div class="group flex gap-4 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-primary/25 transition-all">
+                                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative">
+                                            <img src="https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=150&q=80" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-grow flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="text-sm font-bold text-white leading-tight">آيسد ستروبري ماتشا لاتيه</h4>
+                                                <p class="text-[10px] text-slate-500 line-clamp-2 mt-1">ماتشا يابانية عضوية فاخرة تقدم باردة مع حليب شوفان كريمي وصوص فراولة محضر منزلياً.</p>
+                                            </div>
+                                            <div class="flex justify-between items-center mt-2">
+                                                <span class="text-xs font-black text-primary">85 ج.م</span>
+                                                <button onclick="addToOrderSimple('iced_strawberry_matcha')" class="px-3 py-1.5 rounded-lg bg-primary hover:bg-white text-white hover:text-black text-[9px] font-black transition-all flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[10px]">shopping_basket</span>
+                                                    <span data-i18n="btn_add_order">إضافة</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-600 border-t border-white/5 pt-3">
+                                    <span>NORI &amp; RICE</span>
+                                    <span>PAGE 6</span>
+                                </div>
+                            </div>
+                            <div class="page-back cover-back flex flex-col justify-between items-center text-center p-8">
+                                <!-- Back Cover -->
+                                <div class="w-full"></div>
+                                <div class="my-auto">
+                                    <div class="w-16 h-16 border border-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-secondary">
+                                        <span class="material-symbols-outlined text-3xl">restaurant</span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-white font-serif tracking-widest">NORI &amp; RICE</h3>
+                                    <p class="text-[8px] tracking-[4px] text-secondary font-black uppercase mt-1">TOKYO LOUNGE EXPERIENCE</p>
+                                    <div class="w-8 h-[1px] bg-white/10 mx-auto my-4"></div>
+                                    <p class="text-[10px] text-slate-500 leading-relaxed max-w-[200px] mx-auto">صُمم هذا الكتالوج التفاعلي بحب ليوفر لكم تجربة طعام استثنائية تحاكي الفخامة اليابانية.</p>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[9px] text-slate-600 tracking-wider">WWW.NORIANDRICE.COM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Book Navigation Buttons (Left/Right Arrows) -->
+                    <button onclick="flipbookNextPage()" class="absolute right-0 md:-right-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90">
+                        <span class="material-symbols-outlined">arrow_forward_ios</span>
+                    </button>
+                    
+                </div>
+                
+                <!-- Flipbook Progress Bar Tracker indicator -->
+                <div class="flex items-center gap-3 mt-8">
+                    <span class="text-xs text-slate-500 font-bold" id="flipbook-page-num">الصفحة: 1 / 4</span>
+                    <div class="w-48 h-1 bg-white/5 rounded-full overflow-hidden relative">
+                        <div id="flipbook-progress" class="absolute top-0 bottom-0 left-0 bg-primary transition-all duration-500" style="width: 25%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Horizontal Visual Category Slider (Initially hidden in Book mode) -->
+            <div class="category-slider-container hidden">
+                <div id="category-track" class="category-track no-scrollbar">
+                    <!-- Loaded dynamically via js/app.js -->
+                </div>
+            </div>
+
+            <!-- Menu Grid layout (Initially hidden in Book mode) -->
+            <div id="menu-items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden">
+                <!-- Loaded dynamically via js/app.js -->
+            </div>
+        </section>
+        </div> <!-- Close home-view -->
+
+        <!-- ==================== CONTACT VIEW PANEL ==================== -->
+        <div id="contact-view" class="view-panel hidden">
+            <!-- ==================== CONTACT SECTION ==================== -->
+            <section id="contact-section" class="scroll-mt-24">
+            <div class="glass-card p-8 md:p-12">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <span class="text-xs text-primary font-black uppercase tracking-[4px]">CONNECT WITH NORI & RICE</span>
+                        <h2 class="text-3xl md:text-5xl font-black text-white font-serif mt-1 mb-6" data-i18n="contact_info">معلومات الاتصال والوصول</h2>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-secondary border border-white/10 flex-shrink-0">
+                                    <span class="material-symbols-outlined text-xl">location_on</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1" data-i18n="address_label">العنوان</h4>
+                                    <p class="text-sm font-bold text-white leading-relaxed" data-i18n="address_value">شارع كورنيش الإسكندرية، بجوار لوران، الإسكندرية</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-secondary border border-white/10 flex-shrink-0">
+                                    <span class="material-symbols-outlined text-xl">phone</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1" data-i18n="phone_label">رقم الهاتف والطلبات</h4>
+                                    <p class="text-sm font-black text-white leading-relaxed">01012345678</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-secondary border border-white/10 flex-shrink-0">
+                                    <span class="material-symbols-outlined text-xl">schedule</span>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1" data-i18n="hours_label">أوقات العمل</h4>
+                                    <p class="text-sm font-bold text-white leading-relaxed" data-i18n="hours_value">يومياً من 12:00 ظهراً وحتى 02:00 صباحاً</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Premium visual Map placeholder or interior display -->
+                    <div class="relative rounded-3xl overflow-hidden aspect-[16/10] border border-white/5 shadow-2xl">
+                        <img src="https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=800&q=80" alt="Nori & Rice interior" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <a href="https://maps.google.com" target="_blank" class="px-6 py-3.5 bg-white/95 text-black hover:bg-primary hover:text-white rounded-2xl font-bold text-sm transition-all shadow-xl flex items-center gap-2 active:scale-95">
+                                <span class="material-symbols-outlined">map</span>
+                                <span data-i18n="nav_contact">عرض الخريطة التفاعلية</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </section>
+        </div> <!-- Close contact-view -->
+    </main>
+
+    <!-- --- Footer Credits --- -->
+    <footer class="border-t border-white/5 py-8 bg-[#07070a]">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center">
+            <span class="text-xs text-slate-600 tracking-wider flex items-center gap-1">
+                <span>Nori</span><span class="text-primary font-normal">&amp;</span><span>Rice</span>
+                <span data-i18n="footer_rights">جميع الحقوق محفوظة © 2026 نوري & رايس.</span>
+            </span>
+            <div class="flex gap-4">
+                <a href="#" class="w-8 h-8 rounded-full bg-white/2 hover:bg-primary/20 border border-white/5 flex items-center justify-center text-slate-500 hover:text-primary transition-all"><span class="material-symbols-outlined text-base">public</span></a>
+                <a href="#" class="w-8 h-8 rounded-full bg-white/2 hover:bg-primary/20 border border-white/5 flex items-center justify-center text-slate-500 hover:text-primary transition-all"><span class="material-symbols-outlined text-base">share</span></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== DIALOG MODALS & OVERLAYS ==================== -->
+
+    <!-- 1. Sushi Customizer Modal -->
+    <div id="customizer-modal" class="modal-overlay" onclick="if(event.target === this) closeCustomizer()">
+        <div class="bg-abyss-card w-full max-w-4xl rounded-[28px] border border-white/10 shadow-3xl overflow-hidden relative z-[160] modal-content" onclick="event.stopPropagation()">
+            <div id="customizer-content">
+                <!-- Content loaded dynamically via js/app.js -->
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- 3. Cart Drawer Panel -->
+    <div id="cart-overlay" class="cart-overlay" onclick="toggleCart()"></div>
+    <div id="cart-drawer" class="cart-drawer">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-abyss-card">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">shopping_basket</span>
+                <span data-i18n="cart_title">طلبك الحالي</span>
+            </h2>
+            <button onclick="toggleCart()" class="p-2 hover:bg-white/5 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-slate-400 hover:text-white transition-colors">close</span>
+            </button>
+        </div>
+        
+        <!-- Cart Items Dynamic Container -->
+        <div id="cart-items-wrapper" class="flex-grow overflow-y-auto p-6 space-y-4 no-scrollbar">
+            <!-- Rendered dynamically by js/app.js -->
+        </div>
+        
+        <!-- Footer Checkout details -->
+        <div class="p-6 border-t border-white/5 bg-abyss-card mt-auto space-y-6">
+            <div class="flex justify-between items-center text-white">
+                <span class="text-sm font-bold opacity-60" data-i18n="cart_total">المجموع الكلي</span>
+                <span id="cart-total-price" class="text-2xl font-black text-secondary">0 ج.م</span>
+            </div>
+            
+            <button onclick="sendCartOrderWhatsApp()" class="w-full py-4.5 rounded-2xl bg-[#25D366] text-white font-bold text-base flex items-center justify-center gap-2 shadow-2xl transition-all duration-300 hover:opacity-90 active:scale-95">
+                <span class="material-symbols-outlined text-xl">send</span>
+                <span data-i18n="btn_send_order_whatsapp">إرسال الطلب عبر واتساب</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. Unified Mobile Bottom Navigation Bar (Floating Pill Capsule) -->
+    <div id="mobile-bottom-nav" class="mobile-bottom-nav md:hidden flex justify-around items-center">
+        <!-- 1. Menu Tab -->
+        <button id="m-nav-home" onclick="switchView('home')" class="m-nav-item active flex flex-col items-center justify-center relative w-20 h-full text-primary">
+            <span class="material-symbols-outlined text-2xl">restaurant_menu</span>
+            <span class="text-[9px] font-black uppercase tracking-wider mt-1" data-i18n="nav_menu">القائمة</span>
+            <span class="m-nav-indicator absolute bottom-1.5 w-1 h-1 rounded-full bg-primary"></span>
+        </button>
+        
+        <!-- 2. Contact Tab -->
+        <button id="m-nav-contact" onclick="switchView('contact')" class="m-nav-item flex flex-col items-center justify-center relative w-20 h-full text-slate-400">
+            <span class="material-symbols-outlined text-2xl">phone_in_talk</span>
+            <span class="text-[9px] font-black uppercase tracking-wider mt-1" data-i18n="nav_contact">اتصل بنا</span>
+            <span class="m-nav-indicator absolute bottom-1.5 w-1 h-1 rounded-full bg-primary hidden"></span>
+        </button>
+    </div>
+
+    <!-- 5. Dynamic Site Toast Notification Alert -->
+    <div id="site-toast" class="opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4">
+        <!-- Toast message loaded here -->
+    </div>
+
+    <!-- --- App Scripts linking --- -->
+    <script src="./js/translations.js"></script>
+    <script src="./js/data.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+
+</html>
