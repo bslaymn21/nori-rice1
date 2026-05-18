@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (settings.address_en && translations.en) translations.en.address_value = settings.address_en;
                 if (settings.hours_ar && translations.ar) translations.ar.hours_value = settings.hours_ar;
                 if (settings.hours_en && translations.en) translations.en.hours_value = settings.hours_en;
-                updateLanguage(currentLanguage); // Actually render the loaded settings into the HTML
+                applyLanguage(currentLanguage); // Actually render the loaded settings into the HTML
             }
         }
         if (feed && feed.length > 0) {
@@ -1411,7 +1411,7 @@ function updateFlipbook() {
     const pageNumText = document.getElementById('flipbook-page-num');
     const progressBar = document.getElementById('flipbook-progress');
     // Ensure pagination visibility matches view
-    if (viewName === 'home') {
+    if (!document.getElementById('home-view').classList.contains('hidden')) {
         if (pageNumText) pageNumText.style.display = 'block';
         if (progressBar) progressBar.style.display = 'block';
     } else {
