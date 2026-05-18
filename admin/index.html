@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Nori & Rice | Admin Login</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;600;700;800&family=Work+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .login-glass {
+            background: rgba(19, 47, 52, 0.75); /* Using #132f34 with opacity! */
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(232, 213, 192, 0.08); /* Brand gold-tinted border! */
+        }
+
+        .glow-button {
+            box-shadow: 0 0 20px rgba(212, 161, 123, 0.3); /* Gold glow shadow */
+        }
+    </style>
+</head>
+
+<body
+    class="bg-[#0b272a] flex items-center justify-center min-h-screen p-6 selection:bg-secondary selection:text-white">
+    <!-- Animatedbg -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div
+            class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse">
+        </div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/10 blur-[120px] rounded-full animate-pulse"
+            style="animation-delay: 2s"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10">
+        <div class="login-glass rounded-[40px] overflow-hidden shadow-2xl p-8 md:p-12 text-center">
+            <div class="mb-10">
+                <img src="../asseat/only logo remove background.png" alt="Nori & Rice Logo" class="h-32 w-auto mx-auto mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                <h1 class="text-white text-3xl font-black tracking-widest font-h1 uppercase mb-2">NORI & RICE</h1>
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.4em]">ADMINISTRATION SYSTEM</p>
+            </div>
+
+            <form id="login-form" class="space-y-6 text-right" dir="rtl">
+                <div class="space-y-2 text-right">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">اسم المستخدم</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">person</span>
+                        <input type="text" id="username" required placeholder="admin"
+                            class="w-full pr-12 pl-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-secondary focus:ring-0 transition-all text-white outline-none font-bold">
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-right">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">كلمة المرور</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">vpn_key</span>
+                        <input type="password" id="password" required placeholder="••••••••"
+                            class="w-full pr-12 pl-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-secondary focus:ring-0 transition-all text-white outline-none">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2">
+                    <input type="checkbox" id="remember-me" class="w-5 h-5 rounded-lg bg-white/5 border-white/10 text-secondary focus:ring-secondary cursor-pointer">
+                    <label for="remember-me" class="text-xs font-bold text-slate-400 cursor-pointer select-none">حفظ الدخول على هذا الهاتف</label>
+                </div>
+
+                <div id="error-msg" class="hidden animate-shake">
+                    <div class="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold p-4 rounded-xl flex items-center gap-3">
+                        <span class="material-symbols-outlined text-sm">error</span>
+                        بيانات الدخول غير صحيحة. حاول مرة أخرى.
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn"
+                    class="w-full bg-secondary py-5 rounded-2xl text-white font-black tracking-[0.2em] uppercase glow-button hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex justify-center items-center gap-3">
+                    <span>دخول النظام</span>
+                    <span class="material-symbols-outlined text-xl">login</span>
+                </button>
+            </form>
+
+            <div class="mt-12 pt-8 border-t border-white/5">
+                <a href="../index.html"
+                    class="text-slate-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                    العودة للموقع
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            <p class="text-slate-600 text-[9px] font-bold uppercase tracking-tighter mt-8">
+                &copy; 2026 NORI & RICE &bull; V1.5.0 • SECURE ACCESS
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initAdminAccount, verifyAdmin } from '../database/services.js';
+
+        // Ensure default account exists
+        initAdminAccount();
+
+        // Check if already remembered
+        const rememberedUser = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
+        if (rememberedUser) {
+             window.location.href = '/admin/dashboard.html';
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const remember = document.getElementById('remember-me').checked;
+            const error = document.getElementById('error-msg');
+            const btn = document.getElementById('submit-btn');
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="animate-spin material-symbols-outlined">sync</span>';
+                
+                const adminData = await verifyAdmin(user, pass);
+                
+                if (adminData) {
+                    // Success
+                    const sessionData = { 
+                        username: adminData.username, 
+                        loginTime: Date.now(),
+                        remember: remember
+                    };
+                    
+                    if (remember) {
+                        localStorage.setItem('admin_session', JSON.stringify(sessionData));
+                    } else {
+                        sessionStorage.setItem('admin_session', JSON.stringify(sessionData));
+                    }
+
+                    window.location.href = '/admin/dashboard.html';
+                } else {
+                    throw new Error("Invalid credentials");
+                }
+            } catch (err) {
+                console.error(err);
+                error.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<span>دخول النظام</span><span class="material-symbols-outlined text-xl">login</span>';
+                document.getElementById('password').value = '';
+            }
+        });
+    </script>
+    <style>
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
+</body>
+
+</html>

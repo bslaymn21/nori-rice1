@@ -92,7 +92,7 @@ const sushiMenu = [
         isPopular: true,
         timesOrdered: 87,
         images: [
-            "https://images.unsplash.com/photo-1579871494481-22d7ba56920f?auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=800&q=80"
         ],
         options: {
             pieces: [2, 4],
@@ -129,7 +129,7 @@ const sushiMenu = [
         isSpecial: true,
         timesOrdered: 120,
         images: [
-            "https://images.unsplash.com/photo-1628142187880-76fc4dc0f39f?auto=format&fit=crop&w=800&q=80"
+            "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=800&q=80"
         ],
         options: {
             pieces: [5, 10],

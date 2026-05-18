@@ -6,9 +6,9 @@ const translations = {
         nav_cart: "السلة",
         nav_contact: "اتصل بنا",
         
-        menu_mode_book: "كتاب المنيو التفاعلي 📖",
-        menu_mode_grid: "العرض الشبكي 🎛️",
-        tap_to_flip: "اضغط لفتح الكتاب",
+        menu_mode_book: "كتاب المنيو التفاعلي",
+        menu_mode_grid: "العرض الشبكي",
+        tap_to_flip: "اسحب لفتح الكتاب",
         book_chef_title: "فلسفتنا في الطهي",
         book_chef_text: "كل قطعة سوشي نقدمها لكم هي نتاج سنوات من الخبرة الشغوفة، ننتقي أجود قطع الأسماك الأسكتلندية والأرز الياباني المصقول بعناية، لنرسم لوحة فنية تشبع حواسكم الفاخرة.",
         
@@ -84,7 +84,7 @@ const translations = {
         booking_notes: "ملاحظات خاصة (مثلاً: مناسبة خاصة، حساسية طعام)",
         
         btn_confirm_booking: "تأكيد وإصدار تذكرة الحجز",
-        booking_success_title: "تم تأكيد الحجز بنجاح! 🎟️",
+        booking_success_title: "تم تأكيد الحجز بنجاح!",
         booking_success_desc: "تم إصدار تذكرتك الرقمية وحفظ طاولتك في نظام Nori & Rice. يمكنك الضغط لفتح التذكرة وإرسال تفاصيلها مباشرة عبر واتساب لتأكيد الدخول المباشر.",
         ticket_number: "رقم التذكرة",
         ticket_table: "الطاولة المحجوزة",
@@ -99,10 +99,17 @@ const translations = {
         cart_total: "المجموع الكلي",
         btn_send_order_whatsapp: "إرسال الطلب عبر واتساب",
         btn_back_menu: "العودة للقائمة",
-        order_success_title: "شكراً لطلبك من نوري & رايس! 🍣",
+        order_success_title: "شكراً لطلبك من نوري & رايس!",
         order_success_desc: "تم إرسال طلبك بنجاح لواتساب المطعم للتحضير الفوري.",
         
         // General
+        comments_title: "آراء وتقييمات ضيوفنا",
+        comments_subtitle: "نعتز بثقتكم ونسعد بقراءة تجاربكم الفاخرة في نوري & رايس",
+        btn_add_comment: "إضافة تقييمك",
+        comment_name_label: "الاسم الكريم",
+        comment_text_label: "نص التقييم أو الملاحظة",
+        comment_rating_label: "تقييمك للتجربة",
+        comment_success: "تم إرسال تقييمك بنجاح! شكراً لمشاركتنا تجربتك الفاخرة.",
         feedback_title: "شاركنا تقييمك",
         feedback_placeholder: "اكتب تجربتك وملاحظاتك هنا لنستمر في إبهارك...",
         btn_submit_feedback: "إرسال التقييم",
@@ -121,9 +128,9 @@ const translations = {
         nav_cart: "Cart",
         nav_contact: "Contact",
         
-        menu_mode_book: "Interactive Menu Book 📖",
-        menu_mode_grid: "Grid Selections 🎛️",
-        tap_to_flip: "Tap to Flip Page",
+        menu_mode_book: "Interactive Menu Book",
+        menu_mode_grid: "Grid Selections",
+        tap_to_flip: "Swipe to Flip Page",
         book_chef_title: "Culinary Philosophy",
         book_chef_text: "Every piece of sushi we serve is the result of years of passionate craft. We select only the finest Scottish salmon and premium polished Japanese rice to curate a visual and gastronomic masterpiece.",
         
@@ -199,7 +206,7 @@ const translations = {
         booking_notes: "Special Requests (e.g. Special occasion, food allergies)",
         
         btn_confirm_booking: "Confirm & Generate Digital Ticket",
-        booking_success_title: "Reservation Confirmed! 🎟️",
+        booking_success_title: "Reservation Confirmed!",
         booking_success_desc: "Your digital ticket has been issued and your table is saved in Nori & Rice. You can click below to view your ticket and send it via WhatsApp for instant check-in.",
         ticket_number: "Ticket #",
         ticket_table: "Reserved Table",
@@ -214,10 +221,17 @@ const translations = {
         cart_total: "Grand Total",
         btn_send_order_whatsapp: "Send Order via WhatsApp",
         btn_back_menu: "Back to Menu",
-        order_success_title: "Thank you for ordering! 🍣",
+        order_success_title: "Thank you for ordering!",
         order_success_desc: "Your order was sent successfully to our WhatsApp line for immediate preparation.",
         
         // General
+        comments_title: "Guest Experiences & Reviews",
+        comments_subtitle: "We cherish your trust and take pride in reading about your luxury experiences at Nori & Rice",
+        btn_add_comment: "Add Your Review",
+        comment_name_label: "Your Full Name",
+        comment_text_label: "Review or Feedback",
+        comment_rating_label: "Experience Rating",
+        comment_success: "Your review was submitted successfully! Thank you for sharing your luxury experience.",
         feedback_title: "Rate Your Experience",
         feedback_placeholder: "Write your feedback and experience here to help us keep amazing you...",
         btn_submit_feedback: "Submit Feedback",
