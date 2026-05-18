@@ -159,11 +159,12 @@
                     <div
                         class="flipbook-outer flex items-center justify-center w-full max-w-[900px] overflow-visible relative px-4">
 
-                        <!-- Book Navigation Buttons (Left/Right Arrows) -->
-                        <button onclick="flipbookPrevPage()"
-                            class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full hidden md:flex items-center justify-center transition-all duration-300 active:scale-90">
-                            <span class="material-symbols-outlined">arrow_back_ios</span>
-                        </button>
+<!-- Book Navigation Buttons (Left/Right Arrows) - Hidden on mobile -->
+<button onclick="flipbookPrevPage()"
+    class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full hidden items-center justify-center transition-all duration-300 active:scale-90"
+    style="display: none !important;">
+    <span class="material-symbols-outlined">arrow_back_ios</span>
+</button>
 
                         <!-- The actual 3D Book -->
                         <div class="sushi-book" id="sushi-book">
