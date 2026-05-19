@@ -25,7 +25,7 @@ let selectedCategoryFile = null;
 document.addEventListener('DOMContentLoaded', async () => {
     const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
     if (!session) {
-        window.location.href = '/admin/index.html';
+        window.location.href = './index.html';
         return;
     }
 
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function logout() {
     localStorage.removeItem('admin_session');
     sessionStorage.removeItem('admin_session');
-    window.location.href = '/admin/index.html';
+    window.location.href = './index.html';
 }
 
 function toggleNotifications() {
