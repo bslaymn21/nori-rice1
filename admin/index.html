@@ -104,10 +104,13 @@
         // Ensure default account exists
         initAdminAccount();
 
+        const adminBasePath = window.location.pathname.replace(/\/(?:index\.html)?$/, '/');
+        const redirectToDashboard = () => { window.location.href = `${adminBasePath}dashboard.html`; };
+
         // Check if already remembered
         const rememberedUser = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
         if (rememberedUser) {
-             window.location.href = './dashboard.html';
+             redirectToDashboard();
         }
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -138,7 +141,7 @@
                         sessionStorage.setItem('admin_session', JSON.stringify(sessionData));
                     }
 
-                    window.location.href = './dashboard.html';
+                    redirectToDashboard();
                 } else {
                     throw new Error("Invalid credentials");
                 }

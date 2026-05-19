@@ -8,6 +8,7 @@ import {
     getOrders, updateOrderStatus, deleteOrder,
     getGlobalSettings, updateGlobalSettings,
     getTodayVisitors, getWhatsAppConversions, getQRScans,
+    getActiveOffers, saveOffer, deleteOffer,
     getAllFeedback, updateFeedbackStatus, updateAdminPassword
 } from '../database/services.js';
 import { uploadToCloudinary } from '../js/cloudinary.js';
@@ -16,8 +17,11 @@ let currentData = [];
 let categories = [];
 let orders = [];
 let feedback = [];
+let currentOffers = [];
 let selectedFiles = [];
 let existingUrls = [];
+let selectedOfferFile = null;
+let existingOfferUrl = null;
 
 let selectedCategoryFile = null;
 
@@ -34,10 +38,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.toggleSidebar = toggleSidebar;
     window.openModal = openModal;
     window.closeModal = closeModal;
-    window.handleAddCategory = handleAddCategory;
-    window.handleDeleteCategory = handleDeleteCategory;
+    window.openOfferModal = openOfferModal;
+    window.closeOfferModal = closeOfferModal;
+    window.handleOfferImageSelect = handleOfferImageSelect;
     window.editItem = editItem;
+    window.editOffer = editOffer;
     window.deleteItem = deleteItem;
+    window.deleteOffer = handleDeleteOffer;
     window.toggleAvailability = toggleAvailability;
     window.handleImageSelection = handleImageSelection;
     window.removeImage = removeImage;
@@ -60,6 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.markAllNotificationsAsRead = markAllNotificationsAsRead;
 
     document.getElementById('item-form').addEventListener('submit', handleFormSubmit);
+    document.getElementById('offer-form').addEventListener('submit', handleOfferFormSubmit);
 
     // Initial Load
     await refreshData();
@@ -133,7 +141,7 @@ function markAllNotificationsAsRead() {
 async function refreshData() {
     showNotification('جاري تحديث البيانات... ⏳');
     try {
-        const [menuItems, cats, ords, feed, settings, visitors, whatsapp, qrScans] = await Promise.all([
+        const [menuItems, cats, ords, feed, settings, visitors, whatsapp, qrScans, offers] = await Promise.all([
             getMenuItems(),
             getCategories(),
             getOrders(),
@@ -141,11 +149,13 @@ async function refreshData() {
             getGlobalSettings(),
             getTodayVisitors(),
             getWhatsAppConversions(),
-            getQRScans()
+            getQRScans(),
+            getActiveOffers()
         ]);
 
         currentData = menuItems || [];
         categories = cats || [];
+        currentOffers = offers || [];
         orders = ords || [];
         feedback = feed || [];
         window.nori_categories = categories; // Global cache for reordering
@@ -159,6 +169,8 @@ async function refreshData() {
         // Render UI
         renderCategories(categories);
         renderMenuGrid();
+        renderOffersGrid();
+        populateOfferItemSelect();
         renderOrders();
         renderFeedback();
         updateNotifications();
@@ -197,7 +209,7 @@ function showNotification(msg, type = 'success') {
  * --- TABS & NAVIGATION ---
  */
 function switchTab(tabId) {
-    const tabs = ['dashboard', 'orders', 'menu', 'qrcode', 'settings'];
+    const tabs = ['dashboard', 'orders', 'menu', 'offers', 'qrcode', 'settings'];
     tabs.forEach(t => {
         const content = document.getElementById(`content-${t}`);
         const btn = document.getElementById(`tab-${t}`);
@@ -285,9 +297,13 @@ function renderMenuGrid() {
                     <span class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[#c18c64] dark:text-secondary text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
                         ${item.category}
                     </span>
-                    ${item.showOnHome ? `
-                        <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
+                    ${item.featured ? `
+                        <span class="bg-amber-500 text-[#0b272a] text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">star</span> مميز
+                        </span>
+                    ` : item.showOnHome ? `
+                        <span class="bg-primary text-white text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">home</span> عرض في الرئيسية
                         </span>
                     ` : ''}
                 </div>
@@ -312,7 +328,7 @@ function renderMenuGrid() {
                 <!-- Options Summary Tags -->
                 <div class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-50 dark:border-white/5">
                     ${item.options?.sizes?.map(s => `<span class="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-lg">${typeof s === 'string' ? s : s.name}</span>`).join('') || ''}
-                    ${item.options?.methods?.map(m => `<span class="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded-lg">${typeof m === 'string' ? m : m.name}</span>`).join('') || ''}
+                    ${item.options?.methods?.map(m => `<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-lg">${typeof m === 'string' ? m : m.name}</span>`).join('') || ''}
                     ${item.options?.types?.map(t => `<span class="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-lg">${t}</span>`).join('') || ''}
                 </div>
 
@@ -892,7 +908,9 @@ async function handleFormSubmit(e) {
             oldPrice: document.getElementById('item-old-price').value ? parseFloat(document.getElementById('item-old-price').value) : null,
             images: finalUrls,
             description_ar: document.getElementById('item-desc-ar').value,
+            ingredients_ar: document.getElementById('item-ingredients-ar').value,
             showOnHome: document.getElementById('item-show-home').checked,
+            featured: document.getElementById('item-featured').checked,
             options: {
                 sizes: selectedSizes,
                 methods: selectedMethods,
@@ -1009,7 +1027,9 @@ function editItem(id) {
     }
 
     document.getElementById('item-desc-ar').value = item.description_ar || '';
+    document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
     document.getElementById('item-show-home').checked = item.showOnHome || false;
+    document.getElementById('item-featured').checked = item.featured || false;
     updateOrderDropdown(item.category, item.order);
 
     if (item.options) {
@@ -1126,6 +1146,178 @@ function renderCategories(categories = []) {
     if (select && Array.isArray(categories)) {
         select.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
     }
+}
+
+function populateOfferItemSelect() {
+    const select = document.getElementById('offer-item-id');
+    if (!select) return;
+
+    const options = currentData.map(item => {
+        const label = `${item.name_ar || item.name || 'بدون اسم'} - ${item.category || 'عام'}`;
+        return `<option value="${item.id}">${label}</option>`;
+    });
+
+    select.innerHTML = [`<option value="">اختيار وجبة</option>`, ...options].join('');
+}
+
+function renderOffersGrid() {
+    const grid = document.getElementById('offers-grid');
+    if (!grid) return;
+
+    if (!currentOffers.length) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-16 opacity-50">
+                <span class="material-symbols-outlined text-6xl mb-4">local_offer</span>
+                <p class="text-lg font-black">لا توجد عروض حالياً</p>
+                <p class="text-sm text-slate-500">أضف عرض جديد ليظهر للعملاء فور فتح الموقع.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const now = new Date().toISOString();
+    grid.innerHTML = currentOffers.map(offer => {
+        const item = currentData.find(menu => menu.id === offer.itemId);
+        const itemName = item ? item.name_ar || item.name : 'وجبة غير معروفة';
+        const expiryLabel = offer.expiryDate && offer.expiryDate > now ? `ينتهي ${new Date(offer.expiryDate).toLocaleString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'منتهي';
+        return `
+            <div class="premium-card bg-white dark:bg-slate-900 p-0 overflow-hidden border border-slate-100 dark:border-white/10 shadow-xl">
+                <div class="relative overflow-hidden h-64">
+                    <img src="${offer.imageUrl || item?.images?.[0] || '../asseat/only logo.jpg'}" alt="${offer.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent"></div>
+                    <span class="absolute top-4 left-4 bg-amber-500 text-[#0b272a] text-[11px] font-black uppercase tracking-[0.2em] px-3 py-2 rounded-2xl shadow-lg">عرض حصري</span>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">${offer.title}</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">الوجبة: ${itemName}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
+                            <p class="text-xs uppercase font-black text-slate-400">السعر قبل العرض</p>
+                            <p class="text-lg font-black text-slate-900 dark:text-white">${offer.oldPrice ? offer.oldPrice + ' جم' : '-'} </p>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
+                            <p class="text-xs uppercase font-black text-slate-400">السعر بعد العرض</p>
+                            <p class="text-lg font-black text-primary">${offer.newPrice} جم</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <span class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">${expiryLabel}</span>
+                        <div class="flex gap-2">
+                            <button onclick="editOffer('${offer.id}')" class="px-4 py-3 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg">تعديل</button>
+                            <button onclick="deleteOffer('${offer.id}')" class="px-4 py-3 rounded-2xl bg-rose-500 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg">حذف</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openOfferModal(offer = null) {
+    selectedOfferFile = null;
+    existingOfferUrl = null;
+    document.getElementById('offer-form').reset();
+    document.getElementById('offer-id').value = '';
+    document.getElementById('offer-image-preview').innerHTML = `<span class="material-symbols-outlined text-slate-300 text-3xl">image</span>`;
+    document.getElementById('offer-modal-title').innerText = offer ? 'تعديل العرض الترويجي' : 'إضافة عرض ترويجي';
+    populateOfferItemSelect();
+
+    if (offer) {
+        document.getElementById('offer-id').value = offer.id;
+        document.getElementById('offer-title').value = offer.title || '';
+        document.getElementById('offer-description').value = offer.description || '';
+        document.getElementById('offer-item-id').value = offer.itemId || '';
+        document.getElementById('offer-expiry').value = offer.expiryDate ? offer.expiryDate.slice(0, 16) : '';
+        document.getElementById('offer-old-price').value = offer.oldPrice || '';
+        document.getElementById('offer-new-price').value = offer.newPrice || '';
+        document.getElementById('offer-btn-text').value = offer.btnText || 'اطلب العرض الآن';
+        if (offer.imageUrl) {
+            existingOfferUrl = offer.imageUrl;
+            document.getElementById('offer-image-preview').innerHTML = `<img src="${offer.imageUrl}" class="w-full h-full object-cover rounded-2xl">`;
+        }
+    }
+
+    document.getElementById('offer-modal').classList.remove('hidden');
+}
+
+function closeOfferModal() {
+    document.getElementById('offer-modal').classList.add('hidden');
+}
+
+function handleOfferImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    selectedOfferFile = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+        document.getElementById('offer-image-preview').innerHTML = `<img src="${reader.result}" class="w-full h-full object-cover rounded-2xl">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function handleOfferFormSubmit(e) {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerText;
+
+    try {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'جاري حفظ العرض...';
+
+        let imageUrl = existingOfferUrl || '';
+        if (selectedOfferFile) {
+            submitBtn.innerText = 'جاري رفع صورة العرض...';
+            imageUrl = await uploadToCloudinary(selectedOfferFile);
+        }
+
+        const offerId = document.getElementById('offer-id').value;
+        const offerData = {
+            title: document.getElementById('offer-title').value.trim(),
+            description: document.getElementById('offer-description').value.trim(),
+            itemId: document.getElementById('offer-item-id').value || null,
+            expiryDate: document.getElementById('offer-expiry').value || null,
+            oldPrice: document.getElementById('offer-old-price').value ? parseFloat(document.getElementById('offer-old-price').value) : null,
+            newPrice: parseFloat(document.getElementById('offer-new-price').value),
+            btnText: document.getElementById('offer-btn-text').value.trim() || 'اطلب العرض الآن',
+            imageUrl: imageUrl,
+            updatedAt: new Date().toISOString()
+        };
+        if (offerId) {
+            offerData.id = offerId;
+        }
+
+        const savedId = await saveOffer(offerData);
+        offerData.id = savedId;
+        showNotification('تم حفظ العرض بنجاح ✨');
+        closeOfferModal();
+        await refreshData();
+    } catch (error) {
+        console.error(error);
+        showNotification('فشل حفظ العرض ❌', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalText;
+    }
+}
+
+async function handleDeleteOffer(id) {
+    if (!confirm('هل تريد حذف هذا العرض؟')) return;
+    try {
+        await deleteOffer(id);
+        showNotification('تم حذف العرض بنجاح');
+        await refreshData();
+    } catch (error) {
+        console.error(error);
+        showNotification('فشل حذف العرض ❌', 'error');
+    }
+}
+
+async function editOffer(id) {
+    const offer = currentOffers.find(o => o.id === id);
+    if (!offer) return;
+    openOfferModal(offer);
 }
 
 function filterMenuItemsByCategory(category) {
@@ -1370,7 +1562,7 @@ function addCustomVariant(type) {
 
 function injectVariantDOM(type, name, price) {
     const container = document.getElementById(type === 'sizes' ? 'options-sizes-container' : 'options-methods-container');
-    const color = type === 'sizes' ? 'sky' : 'purple';
+    const color = type === 'sizes' ? 'sky' : 'primary';
 
     if (document.querySelector(`#${container.id} input[value="${name}"]`)) return;
 

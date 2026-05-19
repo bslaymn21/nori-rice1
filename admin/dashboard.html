@@ -279,6 +279,12 @@
                     <span class="font-bold text-sm">المنيو</span>
                 </button>
 
+                <button onclick="switchTab('offers')" id="tab-offers"
+                    class="sidebar-item w-full flex items-center gap-3.5 px-5 py-3 rounded-xl transition-all group">
+                    <span class="material-symbols-outlined text-[22px]">campaign</span>
+                    <span class="font-bold text-sm">إدارة العروض</span>
+                </button>
+
                 <button onclick="switchTab('qrcode')" id="tab-qrcode"
                     class="sidebar-item w-full hidden lg:flex items-center gap-3.5 px-5 py-3 rounded-xl transition-all group">
                     <span class="material-symbols-outlined text-[22px]">qr_code_2</span>
@@ -563,6 +569,27 @@
                     </div>
                 </div>
 
+                <!-- Offers Tab -->
+                <div id="content-offers" class="hidden space-y-10 animate-in">
+                    <div class="flex flex-col bg-white dark:bg-slate-900 p-5 md:p-8 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm gap-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h2 class="text-lg md:text-2xl font-bold text-slate-900 dark:text-white">إدارة العروض الترويجية</h2>
+                                <p class="text-[10px] md:text-sm text-slate-400 dark:text-slate-500 font-bold mt-1">إنشاء عروض تظهر للعملاء عند فتح الموقع</p>
+                            </div>
+                            <button onclick="openOfferModal()"
+                                class="w-full md:w-auto btn-primary px-4 py-2.5 md:px-10 md:py-4 flex justify-center items-center gap-2 md:gap-3 text-sm md:text-base">
+                                <span class="material-symbols-outlined text-[18px] md:text-[22px]">add_circle</span>
+                                <span>إضافة عرض جديد</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10" id="offers-grid">
+                        <!-- Offers injected by admin.js -->
+                    </div>
+                </div>
+
                 <!-- Settings Tab -->
                 <div id="content-settings" class="hidden animate-in scroll-mt-20">
                     <div class="max-w-4xl mx-auto space-y-10">
@@ -766,6 +793,11 @@
             <span class="material-symbols-outlined text-2xl">restaurant_menu</span>
             <span class="text-[9px] font-bold uppercase">المنيو</span>
         </button>
+        <button onclick="switchTab('offers')" id="mobile-tab-offers"
+            class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-all active:scale-90">
+            <span class="material-symbols-outlined text-2xl">campaign</span>
+            <span class="text-[9px] font-bold uppercase">العروض</span>
+        </button>
         <button onclick="switchTab('settings')" id="mobile-tab-settings"
             class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-all active:scale-90">
             <span class="material-symbols-outlined text-2xl">settings</span>
@@ -877,10 +909,29 @@
                             <option value="">تلقائي (في النهاية)</option>
                         </select>
                     </div>
+                    <div class="space-y-1.5 md:col-span-2 flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="item-featured" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                            <span class="ms-3 text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest pr-2">وجبة مميزة (Featured)</span>
+                        </label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="item-show-home" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <span class="ms-3 text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest pr-2">عرض في الصفحة الرئيسية</span>
+                        </label>
+                    </div>
+
                     <div class="space-y-1.5 md:col-span-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">وصف
                             الوجبة</label>
                         <textarea id="item-desc-ar" rows="2" placeholder="وصف تفصيلي للوجبة..."
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20"></textarea>
+                    </div>
+
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">مكونات الوجبة (تظهر في التخصيص)</label>
+                        <textarea id="item-ingredients-ar" rows="2" placeholder="مثال: سلمون، أفوكادو، خيار، أرز سوشي..."
                             class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20"></textarea>
                     </div>
 
@@ -950,57 +1001,57 @@
                             <!-- Cooking Methods (+ Addition Pricing) -->
                             <div>
                                 <label
-                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2 text-purple-500 mb-2 block">طرق
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2 text-primary-500 mb-2 block">طرق
                                     الطهي وتكاليفها (إضافة للسعر)</label>
                                 <div class="flex flex-wrap gap-2" id="options-methods-container">
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="أرز أبيض تقليدي" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">أرز أبيض تقليدي</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">أرز أبيض تقليدي</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="أرز بني صحي" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">أرز بني صحي</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">أرز بني صحي</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="حار (سبايسي)" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">حار (سبايسي)</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">حار (سبايسي)</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="مقلي بالتمبورا" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">مقلي بالتمبورا</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">مقلي بالتمبورا</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="مخبوز بالفرن" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">مخبوز بالفرن</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">مخبوز بالفرن</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="إضافة مايونيز حار" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">إضافة مايونيز حار</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">إضافة مايونيز حار</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="إضافة صوص ترياكي" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">إضافة صوص ترياكي</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">إضافة صوص ترياكي</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
-                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-purple-500 has-[:checked]:ring-1 has-[:checked]:ring-purple-500 transition-all shadow-sm">
+                                    <label class="relative flex items-stretch bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden has-[:checked]:border-primary-500 has-[:checked]:ring-1 has-[:checked]:ring-primary-500 transition-all shadow-sm">
                                         <input type="checkbox" value="إضافة جبنة كريمي" class="peer sr-only">
-                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-purple-500 transition-colors flex items-center">إضافة جبنة كريمي</span>
-                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-white/10">
+                                        <span class="cursor-pointer px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:text-white peer-checked:bg-primary-500 transition-colors flex items-center">إضافة جبنة كريمي</span>
+                                        <input type="number" placeholder="+ ج.م" title="تكلفة إضافية إذا وجدت" onclick="event.stopPropagation()" class="variant-price hidden peer-checked:block w-16 px-1.5 text-[11px] font-bold bg-slate-50 dark:bg-slate-900 border-none outline-none dark:text-white text-center text-primary-600 dark:text-primary-400 border-r border-slate-200 dark:border-white/10">
                                     </label>
                                 </div>
                                 <div class="mt-3 flex gap-2 w-full max-w-sm">
                                     <input type="text" id="custom-method-name" placeholder="طريقة جديدة..."
-                                        class="flex-grow bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 text-[11px] font-bold focus:ring-2 focus:ring-purple-500/20 outline-none w-1/2">
+                                        class="flex-grow bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 text-[11px] font-bold focus:ring-2 focus:ring-primary-500/20 outline-none w-1/2">
                                     <input type="number" id="custom-method-price" placeholder="+ السعر"
-                                        class="w-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-xl px-2 py-2 text-[11px] font-bold focus:ring-2 focus:ring-purple-500/20 text-center outline-none">
+                                        class="w-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-xl px-2 py-2 text-[11px] font-bold focus:ring-2 focus:ring-primary-500/20 text-center outline-none">
                                     <button type="button" onclick="addCustomVariant('methods')"
-                                        class="bg-slate-200 hover:bg-purple-500 hover:text-white dark:bg-white/10 dark:hover:bg-purple-500 text-slate-600 dark:text-white px-3 flex items-center justify-center rounded-xl transition-all">
+                                        class="bg-slate-200 hover:bg-primary-500 hover:text-white dark:bg-white/10 dark:hover:bg-primary-500 text-slate-600 dark:text-white px-3 flex items-center justify-center rounded-xl transition-all">
                                         <span class="material-symbols-outlined text-[16px]">add</span>
                                     </button>
                                 </div>
@@ -1074,6 +1125,85 @@
                     حذف الآن
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Offer Modal -->
+    <div id="offer-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center px-6"
+        onclick="if(event.target === this) closeOfferModal()">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeOfferModal()"></div>
+        <div class="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[2.5rem] relative border border-slate-200 dark:border-white/10 shadow-2xl p-6 md:p-8 animate-in text-right max-h-[90vh] overflow-y-auto custom-scrollbar"
+            onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-50 dark:border-white/5">
+                <h2 class="text-xl font-black italic" id="offer-modal-title">إضافة عرض ترويجي</h2>
+                <button onclick="closeOfferModal()"
+                    class="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-white/5 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="offer-form" class="space-y-8">
+                <!-- Offer Image -->
+                <div class="space-y-2 pb-4 border-b border-slate-50 dark:border-white/5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">صورة العرض (تظهر للعميل)</label>
+                    <div class="flex items-center gap-4">
+                        <div id="offer-image-preview" class="w-32 h-32 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-slate-300 text-3xl">image</span>
+                        </div>
+                        <label class="btn-primary px-6 py-3 text-xs cursor-pointer">
+                            <span>اختر صورة</span>
+                            <input type="file" id="offer-image-file" class="hidden" accept="image/*" onchange="handleOfferImageSelect(event)">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">عنوان العرض</label>
+                        <input type="text" id="offer-title" placeholder="مثال: عرض الويك إند السوبر"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20" required>
+                    </div>
+
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">الوصف القصير للعرض</label>
+                        <textarea id="offer-description" rows="3" placeholder="مثال: خصم 20% على السوشي مع مشروب مجاني"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">الوجبة المشمولة</label>
+                        <select id="offer-item-id" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                            <!-- Items loaded from menu -->
+                        </select>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">تاريخ الانتهاء</label>
+                        <input type="datetime-local" id="offer-expiry"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">السعر قبل العرض</label>
+                        <input type="number" id="offer-old-price" placeholder="مثال: 500"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2 text-secondary">السعر الجديد (جم)</label>
+                        <input type="number" id="offer-new-price" placeholder="مثال: 399"
+                            class="w-full bg-secondary/10 dark:bg-secondary/20 border-2 border-secondary/20 rounded-xl p-3 text-sm font-black text-secondary focus:ring-2 focus:ring-secondary/20" required>
+                    </div>
+
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">نص زر الشراء</label>
+                        <input type="text" id="offer-btn-text" placeholder="مثال: اطلب العرض الآن"
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                    </div>
+                </div>
+
+                <input type="hidden" id="offer-id">
+                <button type="submit" class="w-full bg-primary text-white py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all mt-2">حفظ العرض ونشره</button>
+            </form>
         </div>
     </div>
 

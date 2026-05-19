@@ -3,24 +3,15 @@
    ========================================================================== */
 
 import {
-    getMenuItems, getCategories, getGlobalSettings,
-    getAllFeedback, saveFeedback, saveOrder, trackVisitor
+    getMenuItems, getCategories, getGlobalSettings, getActiveOffers,
+    getAllFeedback, saveFeedback, saveOrder, getCustomerByPhone, saveCustomer, trackVisitor
 } from '../database/services.js';
 
 // --- Global Variables & App State ---
-let currentLanguage = localStorage.getItem('nori_language') || 'ar'; // Default Arabic
+let currentLanguage = 'ar'; // Always Arabic
+let currentCustomer = JSON.parse(localStorage.getItem('nori_customer') || 'null');
 let selectedCategory = 'all';
 let cart = JSON.parse(localStorage.getItem('nori_cart') || '[]');
-let bookingState = {
-    selectedZone: 'sakura_hall',
-    selectedTableId: null,
-    date: '',
-    time: '',
-    guests: 2,
-    name: '',
-    phone: '',
-    notes: ''
-};
 let activeItemForCustomization = null;
 let customizationChoices = {
     pieces: 8,
@@ -31,6 +22,9 @@ let customizationChoices = {
 // --- Dynamic Admin Integration State ---
 let currentMenuItems = [];
 let currentCategories = [];
+let globalSettings = null; // Store dynamic business settings
+let isRestaurantOpen = true; // Global state for working hours
+let promoTimerInterval = null;
 
 // --- Shoppable 3D Flipbook State ---
 let currentMenuMode = 'book';
@@ -70,6 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.flipbookNextPage = flipbookNextPage;
     window.openCustomizer = openCustomizer;
     window.addToOrderSimple = addToOrderSimple;
+    window.openCustomerModal = openCustomerModal;
+    window.closeCustomerModal = closeCustomerModal;
     window.submitNewComment = submitNewComment;
     window.setCommentRating = setCommentRating;
     window.closeCustomizer = closeCustomizer;
@@ -77,29 +73,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.selectCategory = selectCategory;
     window.slideCustomizerGallery = slideCustomizerGallery;
     window.selectCustomizerPiece = selectCustomizerPiece;
-    window.selectCustomizerRice = selectCustomizerRice;
     window.selectCustomizerSize = selectCustomizerSize;
     window.selectCustomizerMethod = selectCustomizerMethod;
     window.toggleCustomizerAddon = toggleCustomizerAddon;
     window.addCustomizedToCart = addCustomizedToCart;
     window.adjustCartQty = adjustCartQty;
-    window.switchBookingZone = switchBookingZone;
-    window.selectMapTable = selectMapTable;
-    window.handleBookingInputsChange = handleBookingInputsChange;
-    window.submitBooking = submitBooking;
-    window.sendBookingWhatsApp = sendBookingWhatsApp;
-    window.closeBookingSuccess = closeBookingSuccess;
     window.closeUpsellModal = closeUpsellModal;
     window.openCartDrawerFromUpsell = openCartDrawerFromUpsell;
     window.triggerUpsellModal = triggerUpsellModal;
+    window.closePromoModal = closePromoModal;
 
     // Load Dynamic Admin Data from Firebase
     try {
-        const [menuItems, cats, settings, feed] = await Promise.all([
+        const [menuItems, cats, settings, feed, offers] = await Promise.all([
             getMenuItems(),
             getCategories(),
             getGlobalSettings(),
-            getAllFeedback()
+            getAllFeedback(),
+            getActiveOffers()
         ]);
         
         if (menuItems) {
@@ -109,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentCategories = cats;
         }
         if (settings) {
+            globalSettings = settings;
             if (settings.whatsapp) RESTAURANT_WHATSAPP = settings.whatsapp;
             if (settings.phone) {
                 document.querySelectorAll('a[href^="tel:"]').forEach(el => el.href = `tel:${settings.phone}`);
@@ -118,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (settings.social_fb) {
                 document.querySelectorAll('a[href*="facebook.com"]').forEach(el => el.href = settings.social_fb);
             }
+            loadCustomerFromStorage();
             if (settings.social_insta) {
                 document.querySelectorAll('a[href*="instagram.com"]').forEach(el => el.href = settings.social_insta);
             }
@@ -147,6 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
+        // Check for Promo Offers
+        if (offers && offers.length > 0) {
+            displayPromoOffer(offers[0]);
+        }
+
         trackVisitor();
     } catch(e) {
         console.error("Error loading dynamic admin data:", e);
@@ -164,27 +162,188 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Render Menu Items
     renderMenu();
 
-    // Render Floor Table Booking Map
-    renderFloorMap(bookingState.selectedZone);
-
     // Initialize 3D Flipbook state
     updateFlipbook();
     initFlipbookSwipes();
-    setMenuMode('book');
+
+    // Set default menu mode by screen size
+    const defaultMenuMode = window.innerWidth >= 768 ? 'book' : 'grid';
+    setMenuMode(defaultMenuMode);
+
+    window.addEventListener('resize', () => {
+        const responsiveMode = window.innerWidth >= 768 ? 'book' : 'grid';
+        if (responsiveMode !== currentMenuMode) {
+            setMenuMode(responsiveMode);
+        }
+    });
+
+    // Check Restaurant Working Hours
+    checkRestaurantStatus();
 
     // Update Cart Badge and UI
     updateCartUI();
-
-    // Pre-populate date picker with tomorrow's date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateInput = document.getElementById('book-date');
-    if (dateInput) {
-        dateInput.min = new Date().toISOString().split('T')[0];
-        dateInput.value = tomorrow.toISOString().split('T')[0];
-        bookingState.date = dateInput.value;
-    }
 });
+
+// --- Promo Offer Popup Logic ---
+function displayPromoOffer(offer) {
+    const promoModal = document.getElementById('promo-modal');
+    if (!promoModal) return;
+
+    const titleEl = document.getElementById('promo-title');
+    const imgEl = document.getElementById('promo-img');
+    const newPriceEl = document.getElementById('promo-new-price');
+    
+    if (titleEl) titleEl.innerText = offer.title;
+    if (imgEl) imgEl.src = offer.imageUrl;
+    if (newPriceEl) newPriceEl.innerText = `${offer.newPrice} ج.م`;
+    
+    const oldPriceEl = document.getElementById('promo-old-price');
+    const oldPriceContainer = document.getElementById('promo-old-price-container');
+    if (offer.oldPrice && oldPriceEl && oldPriceContainer) {
+        oldPriceEl.innerText = `${offer.oldPrice} ج.م`;
+        oldPriceContainer.classList.remove('hidden');
+    } else if (oldPriceContainer) {
+        oldPriceContainer.classList.add('hidden');
+    }
+
+    const btnTextEl = document.getElementById('promo-btn-text');
+    if (btnTextEl) {
+        btnTextEl.innerText = offer.btnText || 'اطلب العرض الآن';
+    }
+
+    const descriptionEl = document.getElementById('promo-description');
+    if (descriptionEl) {
+        descriptionEl.innerText = offer.description || 'استغل العرض الحصري قبل انتهاء المهلة واحصل على أفضل تجربة سوشي مميزة.';
+    }
+
+    const actionBtn = document.getElementById('promo-action-btn');
+    if (actionBtn) {
+        actionBtn.disabled = false;
+        actionBtn.classList.remove('bg-slate-500', 'cursor-not-allowed');
+        actionBtn.classList.add('bg-primary');
+        actionBtn.onclick = () => {
+            if (offer.itemId) {
+                openCustomizer(offer.itemId);
+                closePromoModal();
+            } else {
+                // Default to WhatsApp
+                const msg = `أود الاستفسار عن عرض: ${offer.title}`;
+                window.open(`https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
+        };
+    }
+
+    // Start countdown timer if expiry is defined
+    const timerTextEl = document.getElementById('promo-timer-text');
+    const timerContainer = document.getElementById('promo-timer');
+    if (offer.expiryDate) {
+        if (promoTimerInterval) clearInterval(promoTimerInterval);
+        if (timerContainer) {
+            timerContainer.classList.remove('hidden');
+            timerContainer.classList.remove('bg-slate-700', 'text-slate-200');
+            timerContainer.classList.add('bg-red-600', 'text-white');
+        }
+        const actionBtn = document.getElementById('promo-action-btn');
+
+        const updateTimer = () => {
+            const now = Date.now();
+            const distance = new Date(offer.expiryDate).getTime() - now;
+            if (distance <= 0) {
+                if (timerTextEl) timerTextEl.innerText = 'انتهى العرض';
+                if (timerContainer) {
+                    timerContainer.classList.remove('bg-red-600', 'text-white');
+                    timerContainer.classList.add('bg-slate-700', 'text-slate-200');
+                }
+                if (actionBtn) {
+                    actionBtn.disabled = true;
+                    const btnTextEl = document.getElementById('promo-btn-text');
+                    if (btnTextEl) btnTextEl.innerText = 'العرض انتهى';
+                    actionBtn.classList.add('bg-slate-500', 'cursor-not-allowed');
+                }
+                clearInterval(promoTimerInterval);
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            const formatted = `${days > 0 ? days + 'ي ' : ''}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (timerTextEl) timerTextEl.innerText = `ينتهي خلال ${formatted}`;
+        };
+
+        updateTimer();
+        promoTimerInterval = setInterval(updateTimer, 1000);
+    } else {
+        if (timerContainer) {
+            timerContainer.classList.add('hidden');
+        }
+        if (promoTimerInterval) {
+            clearInterval(promoTimerInterval);
+            promoTimerInterval = null;
+        }
+    }
+
+    // Show after a small delay
+    setTimeout(() => {
+        promoModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }, 1500);
+}
+
+function closePromoModal() {
+    const promoModal = document.getElementById('promo-modal');
+    if (promoModal) {
+        promoModal.classList.add('hidden');
+        document.body.style.overflow = '';
+        if (promoTimerInterval) {
+            clearInterval(promoTimerInterval);
+            promoTimerInterval = null;
+        }
+    }
+}
+
+// --- Working Hours Logic ---
+function checkRestaurantStatus() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeInMinutes = (currentHour * 60) + currentMinutes;
+    
+    // Default fallback: 12:00 PM to 02:00 AM
+    let startMinutes = 12 * 60; // 12:00 PM
+    let endMinutes = 2 * 60;   // 02:00 AM
+
+    if (globalSettings && globalSettings.startTime && globalSettings.endTime) {
+        const [startH, startM] = globalSettings.startTime.split(':').map(Number);
+        const [endH, endM] = globalSettings.endTime.split(':').map(Number);
+        startMinutes = (startH * 60) + startM;
+        endMinutes = (endH * 60) + endM;
+    }
+
+    // Logic for cross-midnight working hours
+    if (startMinutes < endMinutes) {
+        // Normal shift (e.g., 09:00 to 17:00)
+        isRestaurantOpen = (currentTimeInMinutes >= startMinutes && currentTimeInMinutes < endMinutes);
+    } else {
+        // Midnight crossing shift (e.g., 12:00 to 02:00)
+        isRestaurantOpen = (currentTimeInMinutes >= startMinutes || currentTimeInMinutes < endMinutes);
+    }
+
+    const notification = document.getElementById('closed-notification');
+    if (notification) {
+        if (!isRestaurantOpen) {
+            notification.classList.remove('hidden');
+        } else {
+            notification.classList.add('hidden');
+        }
+    }
+
+    // Always allow ordering even if closed (per user request)
+    // Re-render menu to update states
+    renderMenu();
+    renderDynamicFlipbook();
+}
 
 // --- General Event Listeners ---
 function initEvents() {
@@ -200,74 +359,41 @@ function initEvents() {
         });
     });
 
-    // Time slots selection
-    document.querySelectorAll('.time-slot-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            document.querySelectorAll('.time-slot-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            bookingState.time = chip.getAttribute('data-time');
-            updateTicketSummary();
-        });
-    });
-
     // Flipbook arrow buttons
     const flipbookPrevButton = document.getElementById('flipbook-prev-button');
     const flipbookNextButton = document.getElementById('flipbook-next-button');
     if (flipbookPrevButton) {
-        flipbookPrevButton.addEventListener('click', flipbookNextPage);
+        flipbookPrevButton.addEventListener('click', flipbookPrevPage);
     }
     if (flipbookNextButton) {
-        flipbookNextButton.addEventListener('click', flipbookPrevPage);
+        flipbookNextButton.addEventListener('click', flipbookNextPage);
     }
 }
 
-// --- Bilingual Translation Engine ---
+// --- Remove Translation System ---
+const lang = 'ar';
+
 function toggleLanguage() {
-    currentLanguage = currentLanguage === 'ar' ? 'en' : 'ar';
-    localStorage.setItem('nori_language', currentLanguage);
-    applyLanguage(currentLanguage);
-
-    // Re-render components with translated terms
-    renderCategories();
-    renderMenu();
-    renderFloorMap(bookingState.selectedZone);
-    updateCartUI();
-    updateTicketSummary();
+    // Logic removed - Arabic only
 }
 
-function applyLanguage(lang) {
-    const isRtl = lang === 'ar';
-
-    // Shift document direction and classes
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-
-    if (isRtl) {
-        document.body.classList.add('rtl-mode');
-        document.body.classList.remove('lang-en');
-    } else {
-        document.body.classList.remove('rtl-mode');
-        document.body.classList.add('lang-en');
-    }
-
-    // Update statically declared translations
-    document.querySelectorAll('[data-i18n]').forEach(element => {
-        const key = element.getAttribute('data-i18n');
-        if (translations[lang] && translations[lang][key]) {
-            // Check if element is input placeholder
-            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                element.placeholder = translations[lang][key];
+function applyLanguage(l) {
+    // Always apply Arabic regardless of input
+    document.documentElement.lang = 'ar';
+    document.documentElement.dir = 'rtl';
+    document.body.classList.add('rtl-mode');
+    document.body.classList.remove('lang-en');
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations['ar'][key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = translations['ar'][key];
             } else {
-                element.innerHTML = translations[lang][key];
+                el.innerHTML = translations['ar'][key];
             }
         }
     });
-
-    // Toggle visual state of language picker button
-    const langBtnText = document.getElementById('lang-toggle-text');
-    if (langBtnText) {
-        langBtnText.innerText = lang === 'ar' ? 'English' : 'العربية';
-    }
 
     renderDynamicFlipbook();
 }
@@ -407,10 +533,21 @@ function renderMenu() {
         const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const buttonAction = `openCustomizer('${safeItemId}')`;
 
+        // Check for featured badge
+        const featuredBadge = item.featured ? `
+            <div class="absolute top-4 right-4 z-20 animate-pulse-slow">
+                <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-[#0b272a] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border border-amber-400/30 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">star</span>
+                    <span>مميز</span>
+                </div>
+            </div>
+        ` : '';
+
         html += `
             <div class="bg-[#132f34] border-2 border-[#d4a17b]/40 rounded-3xl overflow-hidden flex flex-col group animate-slide-up shadow-[6px_6px_0px_0px_#d4a17b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-300 cursor-pointer">
                 <!-- Thumbnail (No Dark Overlay for Vivid Food Display) -->
-                <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="openCustomizer('${safeItemId}')">
+                <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="${buttonAction}">
+                    ${featuredBadge}
                     <img src="${optimizeCloudinaryUrl(item.images[0], 600)}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
                     
                     <!-- Floating Price Tag (Top Left) -->
@@ -439,7 +576,7 @@ function renderMenu() {
                     </div>
                     
                     <!-- Full Width Prominent Button (Matching two.html) -->
-                    <button onclick="event.stopPropagation(); ${buttonAction}" class="mt-auto w-full bg-primary text-[#0b272a] font-black py-4 border-2 border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
+                    <button onclick="event.stopPropagation(); ${buttonAction}" class="mt-auto w-full bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black py-4 border-2 border-[#0b272a] transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
                         <span class="material-symbols-outlined font-black text-lg">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>
@@ -489,9 +626,20 @@ function addToOrderSimple(itemId) {
 }
 
 // --- Customizer modal System ---
-function openCustomizer(itemId, preserveChoices = false) {
+function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     const item = currentMenuItems.find(i => i.id === itemId) || (typeof sushiMenu !== 'undefined' ? sushiMenu.find(i => i.id === itemId) : null);
     if (!item) return;
+
+    // Record current scroll position of the customizer content if it's an update
+    let currentScroll = 0;
+    const scrollContainer = document.querySelector('#customizer-modal .md\\:w-\\[55\\%\\]');
+    if (isUpdateOnly && scrollContainer) {
+        currentScroll = scrollContainer.scrollTop;
+    } else if (isUpdateOnly) {
+        // Fallback for mobile/single column
+        const mobileScrollContainer = document.querySelector('#customizer-content > div > div:last-child');
+        if (mobileScrollContainer) currentScroll = mobileScrollContainer.scrollTop;
+    }
 
     activeItemForCustomization = item;
 
@@ -499,7 +647,6 @@ function openCustomizer(itemId, preserveChoices = false) {
     if (!preserveChoices) {
         customizationChoices = {
             pieces: item.options?.pieces ? item.options.pieces[0] : 8,
-            rice: 'white',
             addons: [],
             size: item.options?.sizes?.length ? (typeof item.options.sizes[0] === 'string' ? item.options.sizes[0] : item.options.sizes[0].name) : null,
             method: item.options?.methods?.length ? (typeof item.options.methods[0] === 'string' ? item.options.methods[0] : item.options.methods[0].name) : null
@@ -514,7 +661,9 @@ function openCustomizer(itemId, preserveChoices = false) {
 
     const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
     const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
-    const ingredientText = lang === 'ar' ? (item.ingredients_ar || item.ingredients || item.details_ar || item.details) : (item.ingredients_en || item.ingredients || item.details_en || item.details);
+    
+    // Dynamic ingredients from Admin (ingredients_ar)
+    const ingredientText = lang === 'ar' ? (item.ingredients_ar || item.ingredients) : (item.ingredients_en || item.ingredients);
 
     // 1. Piece options selector
     let piecesHtml = '';
@@ -524,7 +673,7 @@ function openCustomizer(itemId, preserveChoices = false) {
                 <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].piece_count}</label>
                 <div class="flex gap-3 flex-wrap">
                     ${item.options.pieces.map(pcs => `
-                        <button onclick="selectCustomizerPiece(${pcs})" id="btn-pcs-${pcs}" class="flex-1 min-w-[90px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.pieces === pcs ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
+                        <button onclick="selectCustomizerPiece(${pcs})" id="btn-pcs-${pcs}" class="flex-1 min-w-[90px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.pieces === pcs ? 'customizer-btn-active' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
                             ${pcs} ${translations[lang].pieces}
                         </button>
                     `).join('')}
@@ -544,7 +693,7 @@ function openCustomizer(itemId, preserveChoices = false) {
                         const sizePrice = typeof sizeObj === 'object' ? sizeObj.price : null;
                         const safeSizeName = sizeName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return `
-                            <button onclick="selectCustomizerSize('${safeSizeName}')" id="btn-size-${sizeName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[110px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.size === sizeName ? 'bg-secondary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-secondary'}">
+                            <button onclick="selectCustomizerSize('${safeSizeName}')" id="btn-size-${sizeName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[110px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.size === sizeName ? 'customizer-btn-active' : 'bg-[#0b272a] text-slate-300 hover:border-secondary'}">
                                 <div class="flex flex-col gap-1">
                                     <span>${sizeName}</span>
                                     ${sizePrice != null ? `<span class="text-[11px] font-black text-[#d4a17b]">${sizePrice} ${translations[lang].price_currency}</span>` : ''}
@@ -568,10 +717,10 @@ function openCustomizer(itemId, preserveChoices = false) {
                         const methodPrice = typeof methodObj === 'object' ? methodObj.price : null;
                         const safeMethodName = methodName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return `
-                            <button onclick="selectCustomizerMethod('${safeMethodName}')" id="btn-method-${methodName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[120px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.method === methodName ? 'bg-purple-500 text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-purple-500'}">
+                            <button onclick="selectCustomizerMethod('${safeMethodName}')" id="btn-method-${methodName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[120px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.method === methodName ? 'customizer-btn-active' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
                                 <div class="flex flex-col gap-1">
                                     <span>${methodName}</span>
-                                    ${methodPrice != null ? `<span class="text-[11px] font-black text-purple-200">+${methodPrice} ${translations[lang].price_currency}</span>` : `<span class="text-[11px] opacity-70">${translations[lang].free_label || ''}</span>`}
+                                    ${methodPrice != null ? `<span class="text-[11px] font-black text-secondary">+${methodPrice} ${translations[lang].price_currency}</span>` : `<span class="text-[11px] opacity-70">${translations[lang].free_label || ''}</span>`}
                                 </div>
                             </button>
                         `;
@@ -601,7 +750,7 @@ function openCustomizer(itemId, preserveChoices = false) {
                         const addonPrice = typeof addon === 'object' ? addon.price : null;
                         const safeAddonKey = String(addonKey).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return `
-                            <button onclick="toggleCustomizerAddon('${safeAddonKey}')" id="card-addon-${addonKey.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex items-center justify-between p-4 border-2 border-[#d4a17b]/40 rounded-2xl cursor-pointer transition-all ${customizationChoices.addons.includes(addonKey) ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
+                            <button onclick="toggleCustomizerAddon('${safeAddonKey}')" id="card-addon-${addonKey.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex items-center justify-between p-4 border-2 border-[#d4a17b]/40 rounded-2xl cursor-pointer transition-all ${customizationChoices.addons.includes(addonKey) ? 'customizer-btn-active' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
                                 <span class="text-sm font-black">${addonLabel}</span>
                                 ${addonPrice != null ? `<span class="text-xs font-black text-[#d4a17b]">+${addonPrice} ${translations[lang].price_currency}</span>` : ''}
                             </button>
@@ -624,7 +773,7 @@ function openCustomizer(itemId, preserveChoices = false) {
             <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].rice_type}</label>
             <div class="flex flex-col gap-3">
                 ${riceOptions.map(opt => `
-                    <div onclick="selectCustomizerRice('${opt.key}')" id="card-rice-${opt.key}" class="flex items-center justify-between p-4 border-2 border-[#d4a17b]/40 rounded-2xl cursor-pointer transition-all ${customizationChoices.rice === opt.key ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
+                    <div onclick="selectCustomizerRice('${opt.key}')" id="card-rice-${opt.key}" class="flex items-center justify-between p-4 border-2 border-[#d4a17b]/40 rounded-2xl cursor-pointer transition-all ${customizationChoices.rice === opt.key ? 'customizer-btn-active' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-lg">${customizationChoices.rice === opt.key ? 'radio_button_checked' : 'radio_button_unchecked'}</span>
                             <span class="text-sm font-black">${opt.label}</span>
@@ -685,7 +834,6 @@ function openCustomizer(itemId, preserveChoices = false) {
                         ${sizesHtml}
                         ${methodsHtml}
                         ${addonsHtml}
-                        ${riceHtml}
                      </div>
                 </div>
                 
@@ -708,6 +856,19 @@ function openCustomizer(itemId, preserveChoices = false) {
     modalOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
     updateCustomizerPrice();
+
+    // Restore scroll position if it's an update
+    if (isUpdateOnly && currentScroll > 0) {
+        const newScrollContainer = document.querySelector('#customizer-modal .md\\:w-\\[55\\%\\]');
+        const mobileScrollContainer = document.querySelector('#customizer-content > div > div:last-child');
+        
+        if (newScrollContainer) {
+            newScrollContainer.scrollTop = currentScroll;
+        }
+        if (mobileScrollContainer) {
+            mobileScrollContainer.scrollTop = currentScroll;
+        }
+    }
 }
 
 function closeCustomizer() {
@@ -725,22 +886,17 @@ function slideCustomizerGallery(direction) {
 
 function selectCustomizerPiece(pcs) {
     customizationChoices.pieces = pcs;
-    openCustomizer(activeItemForCustomization.id, true);
-}
-
-function selectCustomizerRice(riceKey) {
-    customizationChoices.rice = riceKey;
-    openCustomizer(activeItemForCustomization.id, true);
+    openCustomizer(activeItemForCustomization.id, true, true);
 }
 
 function selectCustomizerSize(sizeName) {
     customizationChoices.size = sizeName;
-    openCustomizer(activeItemForCustomization.id, true);
+    openCustomizer(activeItemForCustomization.id, true, true);
 }
 
 function selectCustomizerMethod(methodName) {
     customizationChoices.method = methodName;
-    openCustomizer(activeItemForCustomization.id, true);
+    openCustomizer(activeItemForCustomization.id, true, true);
 }
 
 function toggleCustomizerAddon(addonKey) {
@@ -750,13 +906,7 @@ function toggleCustomizerAddon(addonKey) {
     } else {
         customizationChoices.addons.push(addonKey);
     }
-
-    const card = document.getElementById(`card-addon-${addonKey}`);
-    if (card) {
-        card.classList.toggle('selected', idx === -1);
-    }
-
-    updateCustomizerPrice();
+    openCustomizer(activeItemForCustomization.id, true, true);
 }
 
 function updateCustomizerPrice() {
@@ -776,11 +926,6 @@ function updateCustomizerPrice() {
         const multiplier = item.options.pieceMultiplier[customizationChoices.pieces] || 1.0;
         basePrice = Math.round(basePrice * multiplier);
     }
-
-    // Surcharges for Rice
-    let riceSurcharge = 0;
-    if (customizationChoices.rice === 'brown') riceSurcharge = 15;
-    if (customizationChoices.rice === 'black') riceSurcharge = 25;
 
     // Surcharges for Cooking Method
     let methodSurcharge = 0;
@@ -807,7 +952,7 @@ function updateCustomizerPrice() {
         addonsSurcharge += (addonPrices[ad] || 0);
     });
 
-    const finalComputed = basePrice + riceSurcharge + methodSurcharge + addonsSurcharge;
+    const finalComputed = basePrice + methodSurcharge + addonsSurcharge;
 
     const priceDisplay = document.getElementById('customizer-computed-price');
     if (priceDisplay) {
@@ -825,11 +970,6 @@ function addCustomizedToCart() {
     const lang = currentLanguage;
 
     // Formulate readable details for cart
-    const riceLabels = {
-        white: translations[lang].rice_white,
-        brown: translations[lang].rice_brown,
-        black: translations[lang].rice_black
-    };
     const addonLabels = {
         creamcheese: translations[lang].addon_creamcheese,
         avocado: translations[lang].addon_avocado,
@@ -849,7 +989,6 @@ function addCustomizedToCart() {
             pieces: customizationChoices.pieces,
             size: customizationChoices.size,
             method: customizationChoices.method,
-            rice: riceLabels[customizationChoices.rice],
             addons: customizationChoices.addons.map(ad => addonLabels[ad] || ad)
         }
     };
@@ -977,6 +1116,160 @@ function saveCart() {
     localStorage.setItem('nori_cart', JSON.stringify(cart));
 }
 
+function loadCustomerFromStorage() {
+    if (currentCustomer && currentCustomer.phone && currentCustomer.address) {
+        const note = document.getElementById('customer-note');
+        if (note) {
+            note.innerText = `تم حفظ بياناتك سابقًا: ${currentCustomer.name} - ${currentCustomer.phone}. سيتم استخدام هذا العنوان ما لم تغيره.`;
+        }
+    }
+}
+
+function openCustomerModal() {
+    const modal = document.getElementById('customer-modal');
+    if (!modal) return;
+
+    const nameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('customer-phone');
+    const addressInput = document.getElementById('customer-address');
+    const note = document.getElementById('customer-note');
+
+    if (currentCustomer) {
+        if (nameInput) nameInput.value = currentCustomer.name || '';
+        if (phoneInput) phoneInput.value = currentCustomer.phone || '';
+        if (addressInput) addressInput.value = currentCustomer.address || '';
+        if (note) {
+            note.innerText = `تم تسجيل بياناتك سابقًا. اضغط تأكيد لإرسال الطلب بنفس العنوان أو غيّر البيانات.`;
+        }
+    } else {
+        if (nameInput) nameInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (addressInput) addressInput.value = '';
+        if (note) {
+            note.innerText = 'يرجى كتابة الاسم ورقم الهاتف والعنوان بالكامل قبل إرسال الطلب.';
+        }
+    }
+
+    const form = document.getElementById('customer-form');
+    if (form && !form.hasAttribute('data-listener')) {
+        form.addEventListener('submit', handleCustomerFormSubmit);
+        form.setAttribute('data-listener', 'true');
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeCustomerModal() {
+    const modal = document.getElementById('customer-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+}
+
+async function handleCustomerFormSubmit(event) {
+    event.preventDefault();
+
+    const nameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('customer-phone');
+    const addressInput = document.getElementById('customer-address');
+
+    const name = nameInput?.value.trim();
+    const phone = phoneInput?.value.trim();
+    const address = addressInput?.value.trim();
+
+    if (!name || !phone || !address) {
+        showToast('يرجى ملء جميع البيانات قبل المتابعة.', true);
+        return;
+    }
+
+    try {
+        const customerData = { name, phone, address };
+        const customerId = await saveCustomer(customerData);
+        currentCustomer = { id: customerId, ...customerData };
+        localStorage.setItem('nori_customer', JSON.stringify(currentCustomer));
+
+        showToast('تم حفظ بياناتك بنجاح، جاري إرسال الطلب.');
+        closeCustomerModal();
+        await submitCartWithCustomer(currentCustomer);
+    } catch (error) {
+        console.error(error);
+        showToast('حدث خطأ أثناء حفظ بياناتك، حاول مرة أخرى.', true);
+    }
+}
+
+async function submitCartWithCustomer(customer) {
+    if (!customer || !customer.phone || !customer.address) {
+        openCustomerModal();
+        return;
+    }
+
+    const lang = currentLanguage;
+    const currency = translations[lang].price_currency;
+    const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+    let msg = `🍣 *طلب وجبات سوشي جديدة - نوري & رايس* 🍣\n\n`;
+    msg += `👤 الاسم: ${customer.name}\n`;
+    msg += `📱 الهاتف: ${customer.phone}\n`;
+    msg += `📍 العنوان: ${customer.address}\n\n`;
+
+    cart.forEach((item, index) => {
+        msg += `*${index + 1}. ${item.name}* (الكمية: ${item.quantity})\n`;
+        msg += `• السعر: ${item.price} ${currency}\n`;
+
+        if (item.customizations) {
+            const cust = item.customizations;
+            let details = [];
+            if (cust.pieces) details.push(`${cust.pieces} قطع`);
+            if (cust.size) details.push(`الحجم: ${cust.size}`);
+            if (cust.method) details.push(`النوع: ${cust.method}`);
+
+            msg += `• التخصيص: ${details.join(' | ')}\n`;
+
+            if (cust.addons && cust.addons.length > 0) {
+                msg += `• الإضافات: ${cust.addons.join(' + ')}\n`;
+            }
+        }
+        msg += `\n`;
+    });
+
+    msg += `------------------------------------\n`;
+    msg += `💰 *المجموع الكلي للطلب:* *${totalPrice} ${currency}*\n\n`;
+    msg += `يرجى البدء في تحضير الطلب فوراً وتأكيد الاستلام. شكراً لكم! 🍣✨`;
+
+    const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank');
+
+    try {
+        await saveOrder({
+            customerId: customer.id,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            customerAddress: customer.address,
+            items: cart,
+            totalPrice,
+            sentVia: 'whatsapp'
+        });
+    } catch (error) {
+        console.error('Error saving order record:', error);
+    }
+
+    cart = [];
+    saveCart();
+    updateCartUI();
+    toggleCart(false);
+    showToast(lang === 'ar' ? 'تم إرسال طلب السوشي الخاص بك بنجاح! 🍣🚀' : 'Your sushi order was sent successfully! 🍣🚀');
+}
+
+async function sendCartOrderWhatsApp() {
+    if (cart.length === 0) return;
+
+    if (!currentCustomer || !currentCustomer.phone || !currentCustomer.address) {
+        openCustomerModal();
+        return;
+    }
+
+    openCustomerModal();
+}
+
 function toggleCart(forceOpen = false) {
     const drawer = document.getElementById('cart-drawer');
     const overlay = document.getElementById('cart-overlay');
@@ -1043,9 +1336,10 @@ function updateCartUI() {
             const cust = item.customizations;
             customHtml = `
                 <div class="flex flex-wrap gap-1.5 mt-2">
-                    <span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-primary font-black">${cust.pieces} ${translations[lang].pieces}</span>
-                    <span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-secondary font-black">${cust.rice}</span>
-                    ${cust.addons ? cust.addons.map(ad => `<span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-slate-300 font-bold">${ad}</span>`).join('') : ''}
+                    ${cust.pieces ? `<span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-primary font-black">${cust.pieces} ${translations[lang].pieces}</span>` : ''}
+                    ${cust.size ? `<span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-secondary font-black">${cust.size}</span>` : ''}
+                    ${cust.method ? `<span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-sky-400 font-bold">${cust.method}</span>` : ''}
+                    ${cust.addons && cust.addons.length > 0 ? cust.addons.map(ad => `<span class="px-2.5 py-1 bg-[#0b272a] border border-[#d4a17b]/40 rounded-lg text-[10px] text-slate-300 font-bold">${ad}</span>`).join('') : ''}
                 </div>
             `;
         }
@@ -1099,353 +1393,6 @@ function adjustCartQty(cartId, adjustment) {
 
     saveCart();
     updateCartUI();
-}
-
-// --- Visual Floor Map Booking Engine (Awesome CSS SVG System) ---
-function renderFloorMap(zoneKey) {
-    const mapContainer = document.getElementById('floor-map-container');
-    if (!mapContainer) return;
-
-    // Clear and draw grid wall decorations
-    mapContainer.innerHTML = `
-        <div class="floor-map-decorations">
-            <div class="map-sushi-bar-counter"></div>
-        </div>
-    `;
-
-    const zone = bookingLayout[zoneKey];
-    if (!zone) return;
-
-    const lang = currentLanguage;
-
-    // Render each table node based on absolute coordinates
-    zone.tables.forEach(table => {
-        const isSelected = bookingState.selectedTableId === table.id && bookingState.selectedZone === zoneKey;
-        const seatsLabel = translations[lang].table_seats.replace('{n}', table.seats);
-
-        let label = '';
-        if (table.type === 'bar') {
-            label = translations[lang].table_bar_seat.replace('{n}', table.id.replace('B', ''));
-        } else if (table.type === 'room') {
-            label = lang === 'ar' ? table.name_ar : table.name_en;
-        } else {
-            label = translations[lang].table_number.replace('{n}', table.id.replace('T', ''));
-        }
-
-        const element = document.createElement('div');
-        element.className = `map-element ${isSelected ? 'selected' : ''}`;
-        element.style.left = `${table.x}%`;
-        element.style.top = `${table.y}%`;
-        element.setAttribute('data-id', table.id);
-        element.setAttribute('data-type', table.type);
-        element.setAttribute('data-seats', table.seats);
-        element.setAttribute('data-status', table.status);
-
-        // Append visual chairs around shape
-        let chairsHtml = '';
-        for (let i = 0; i < table.seats; i++) {
-            chairsHtml += `<div class="map-chair"></div>`;
-        }
-
-        element.innerHTML = `
-            <div class="shape">
-                ${chairsHtml}
-            </div>
-            <span class="label">${label}</span>
-        `;
-
-        // Handle Map click selection
-        if (table.status === 'available') {
-            element.addEventListener('click', () => {
-                selectMapTable(table.id, zoneKey);
-            });
-        }
-
-        mapContainer.appendChild(element);
-    });
-}
-
-function switchBookingZone(zoneKey) {
-    bookingState.selectedZone = zoneKey;
-    bookingState.selectedTableId = null; // Reset selection on zone shift
-
-    // Update dynamic buttons
-    document.querySelectorAll('.zone-btn').forEach(btn => {
-        const key = btn.getAttribute('data-zone');
-        btn.classList.toggle('active', key === zoneKey);
-    });
-
-    renderFloorMap(zoneKey);
-    updateTicketSummary();
-}
-
-function selectMapTable(tableId, zoneKey) {
-    bookingState.selectedTableId = tableId;
-    bookingState.selectedZone = zoneKey;
-
-    // Refresh visual items
-    document.querySelectorAll('.map-element').forEach(el => {
-        el.classList.remove('selected');
-    });
-
-    const selectedEl = document.querySelector(`.map-element[data-id="${tableId}"]`);
-    if (selectedEl) {
-        selectedEl.classList.add('selected');
-    }
-
-    // Fetch details
-    const table = bookingLayout[zoneKey].tables.find(t => t.id === tableId);
-    if (table) {
-        bookingState.guests = table.seats;
-
-        // Auto-update inputs
-        const guestsInput = document.getElementById('book-guests');
-        if (guestsInput) guestsInput.value = table.seats;
-    }
-
-    updateTicketSummary();
-    showToast(currentLanguage === 'ar' ? `تم تحديد الطاولة ${tableId} بنجاح 🛋️` : `Table ${tableId} selected successfully 🛋️`);
-}
-
-// --- Ticket Summary Real-Time updates ---
-function handleBookingInputsChange() {
-    bookingState.name = document.getElementById('book-name')?.value || '';
-    bookingState.phone = document.getElementById('book-phone')?.value || '';
-    bookingState.notes = document.getElementById('book-notes')?.value || '';
-    bookingState.date = document.getElementById('book-date')?.value || '';
-    bookingState.guests = parseInt(document.getElementById('book-guests')?.value || '2');
-
-    updateTicketSummary();
-}
-
-function updateTicketSummary() {
-    const summaryCard = document.getElementById('ticket-realtime-card');
-    if (!summaryCard) return;
-
-    const lang = currentLanguage;
-
-    if (!bookingState.selectedTableId) {
-        summaryCard.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 text-center opacity-40">
-                <span class="material-symbols-outlined text-5xl mb-3 text-secondary">chair_alt</span>
-                <h4 class="text-sm font-bold text-white">${translations[lang].table_select}</h4>
-            </div>
-        `;
-        return;
-    }
-
-    const zoneName = translations[lang][`zone_${bookingState.selectedZone}`];
-    const tableCode = bookingState.selectedTableId;
-    const timeDisplay = bookingState.time || '--:--';
-    const dateDisplay = bookingState.date || '----/--/--';
-
-    summaryCard.innerHTML = `
-        <div class="luxury-ticket">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h3 class="text-xs uppercase tracking-widest text-primary font-black mb-1">${translations[lang].site_title.split('|')[0]}</h3>
-                    <h4 class="text-lg font-bold text-white">${translations[lang].booking_success_title.split('!')[0]}</h4>
-                </div>
-                <div class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/20 rounded-md text-[10px] font-black uppercase">CONFIRMED TICKET</div>
-            </div>
-            
-            <div class="ticket-divider"></div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_zone}</span>
-                    <span class="text-sm font-bold text-white">${zoneName}</span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_table}</span>
-                    <span class="text-sm font-black text-secondary">${tableCode} (${bookingState.guests} ${translations[lang].pieces.replace('pcs', 'Seats')})</span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_date_time}</span>
-                    <span class="text-sm font-bold text-white">${dateDisplay} @ ${timeDisplay}</span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_holder}</span>
-                    <span class="text-sm font-bold text-white line-clamp-1">${bookingState.name || '----'}</span>
-                </div>
-            </div>
-            
-            <div class="ticket-divider"></div>
-            
-            <div class="ticket-barcode">
-                <div class="barcode-lines"></div>
-                <span class="text-[9px] tracking-[4px] text-slate-400 mt-2">NORI-${tableCode}-${Math.floor(Math.random() * 9000) + 1000}</span>
-            </div>
-        </div>
-    `;
-}
-
-// --- Submit Booking & Send WhatsApp Ticket ---
-function submitBooking() {
-    const lang = currentLanguage;
-
-    // Validation
-    if (!bookingState.selectedTableId) {
-        showToast(lang === 'ar' ? "يرجى تحديد الطاولة المفضلة من خريطة الصالة أولاً!" : "Please select your preferred table on the floor map first!", true);
-        return;
-    }
-
-    bookingState.name = document.getElementById('book-name')?.value.trim() || '';
-    bookingState.phone = document.getElementById('book-phone')?.value.trim() || '';
-    bookingState.notes = document.getElementById('book-notes')?.value.trim() || '';
-
-    if (!bookingState.name || !bookingState.phone) {
-        showToast(lang === 'ar' ? "يرجى كتابة الاسم ورقم الهاتف لإكمال الحجز!" : "Please write your name and phone number to complete the booking!", true);
-        return;
-    }
-
-    if (!bookingState.time) {
-        showToast(lang === 'ar' ? "يرجى اختيار وقت الحضور!" : "Please choose your arrival time slot!", true);
-        return;
-    }
-
-    // Success Modal trigger
-    const successModal = document.getElementById('booking-success-modal');
-    if (!successModal) return;
-
-    // Generate unique random ticket number
-    const ticketNo = `NR-B${bookingState.selectedTableId}-${Math.floor(Math.random() * 89999) + 10000}`;
-
-    const detailsContainer = document.getElementById('success-ticket-details');
-    if (detailsContainer) {
-        const zoneName = translations[lang][`zone_${bookingState.selectedZone}`];
-        detailsContainer.innerHTML = `
-            <div class="luxury-ticket">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h4 class="text-xs uppercase tracking-widest text-primary font-black mb-0.5">${translations[lang].ticket_number}</h4>
-                        <span class="text-lg font-black text-white">${ticketNo}</span>
-                    </div>
-                    <span class="px-3 py-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs font-black">VALID</span>
-                </div>
-                
-                <div class="ticket-divider"></div>
-                
-                <div class="grid grid-cols-2 gap-4 text-start">
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_holder}</span>
-                        <span class="text-sm font-bold text-white">${bookingState.name}</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_table}</span>
-                        <span class="text-sm font-black text-secondary">${bookingState.selectedTableId} (${bookingState.guests} ${lang === 'ar' ? 'مقاعد' : 'Seats'})</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_zone}</span>
-                        <span class="text-sm font-bold text-white">${zoneName}</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase font-bold mb-0.5">${translations[lang].ticket_date_time}</span>
-                        <span class="text-sm font-bold text-white">${bookingState.date} @ ${bookingState.time}</span>
-                    </div>
-                </div>
-                
-                <div class="ticket-divider"></div>
-                
-                <div class="ticket-barcode">
-                    <div class="barcode-lines"></div>
-                    <span class="text-[9px] tracking-[4px] text-slate-400 mt-2">${ticketNo}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    // Store Ticket Code temporarily for WhatsApp sender
-    window.lastGeneratedTicketNo = ticketNo;
-
-    successModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function sendBookingWhatsApp() {
-    const lang = currentLanguage;
-    const zoneName = translations[lang][`zone_${bookingState.selectedZone}`];
-    const ticketNo = window.lastGeneratedTicketNo || '----';
-
-    // Format message text
-    let msg = `🎟️ *طلب حجز طاولة تفاعلي - نوري & رايس* 🎟️\n\n`;
-    msg += `• *رقم التذكرة:* ${ticketNo}\n`;
-    msg += `• *الاسم بالكامل:* ${bookingState.name}\n`;
-    msg += `• *رقم الهاتف:* ${bookingState.phone}\n`;
-    msg += `• *المنطقة المحجوزة:* ${zoneName}\n`;
-    msg += `• *رقم الطاولة:* ${bookingState.selectedTableId}\n`;
-    msg += `• *عدد المقاعد:* ${bookingState.guests} أشخاص\n`;
-    msg += `• *التاريخ والوقت:* ${bookingState.date} @ ${bookingState.time}\n`;
-
-    if (bookingState.notes) {
-        msg += `• *ملاحظات خاصة:* ${bookingState.notes}\n`;
-    }
-
-    msg += `\nيرجى تأكيد الحجز وتثبيته في نظام اللاونج. شكراً لكم! ✨🍣`;
-
-    // Encode url and trigger WhatsApp API
-    const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank');
-}
-
-function closeBookingSuccess() {
-    document.getElementById('booking-success-modal').classList.remove('active');
-    document.body.style.overflow = '';
-
-    // Reset booking state
-    bookingState.selectedTableId = null;
-    bookingState.time = '';
-
-    // Clear elements
-    document.querySelectorAll('.map-element').forEach(el => el.classList.remove('selected'));
-    document.querySelectorAll('.time-slot-chip').forEach(c => c.classList.remove('active'));
-    document.getElementById('book-name').value = '';
-    document.getElementById('book-phone').value = '';
-    document.getElementById('book-notes').value = '';
-
-    renderFloorMap(bookingState.selectedZone);
-    updateTicketSummary();
-}
-
-// --- Submit Cart Order via WhatsApp ---
-function sendCartOrderWhatsApp() {
-    if (cart.length === 0) return;
-
-    const lang = currentLanguage;
-    const currency = translations[lang].price_currency;
-    const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
-
-    let msg = `🍣 *طلب وجبات سوشي جديدة - نوري & رايس* 🍣\n\n`;
-
-    cart.forEach((item, index) => {
-        msg += `*${index + 1}. ${item.name}* (الكمية: ${item.quantity})\n`;
-        msg += `• السعر: ${item.price} ${currency}\n`;
-
-        if (item.customizations) {
-            const cust = item.customizations;
-            msg += `• التخصيص: ${cust.pieces} قطع | أرز: ${cust.rice}\n`;
-            if (cust.addons.length > 0) {
-                msg += `• الإضافات: ${cust.addons.join(' + ')}\n`;
-            }
-        }
-        msg += `\n`;
-    });
-
-    msg += `------------------------------------\n`;
-    msg += `💰 *المجموع الكلي للطلب:* *${totalPrice} ${currency}*\n\n`;
-    msg += `يرجى البدء في تحضير الطلب فوراً وتأكيد الاستلام. شكراً لكم! 🍣✨`;
-
-    // Send to WhatsApp API
-    const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank');
-
-    // Clear Cart and trigger success feedback
-    cart = [];
-    saveCart();
-    updateCartUI();
-    toggleCart(false);
-
-    showToast(lang === 'ar' ? "تم إرسال طلب السوشي الخاص بك بنجاح! 🍣🚀" : "Your sushi order was sent successfully! 🍣🚀");
 }
 
 // --- Toast System ---
@@ -1582,34 +1529,36 @@ function switchView(viewName) {
     const homeView = document.getElementById('home-view');
     const contactView = document.getElementById('contact-view');
     const commentsView = document.getElementById('comments-view');
-    const bookingView = document.getElementById('booking-view');
     const heroSection = document.getElementById('hero-section');
 
     const navHome = document.getElementById('nav-home');
-    const navBooking = document.getElementById('nav-booking');
     const navComments = document.getElementById('nav-comments');
     const navContact = document.getElementById('nav-contact');
 
     const mNavHome = document.getElementById('m-nav-home');
-    const mNavBooking = document.getElementById('m-nav-booking');
     const mNavComments = document.getElementById('m-nav-comments');
     const mNavContact = document.getElementById('m-nav-contact');
 
     const flipbookWrapper = document.getElementById('book-menu-wrapper');
 
+    // Get current view before hiding
+    const currentView = homeView?.classList.contains('hidden') ? (contactView?.classList.contains('hidden') ? 'comments' : 'contact') : 'home';
+    
+    // If clicking same view, do nothing
+    if (viewName === currentView) return;
+
     // Hide all views
     if (homeView) homeView.classList.add('hidden');
     if (contactView) contactView.classList.add('hidden');
     if (commentsView) commentsView.classList.add('hidden');
-    if (bookingView) bookingView.classList.add('hidden');
     if (heroSection) heroSection.classList.add('hidden');
     if (flipbookWrapper) flipbookWrapper.classList.add('hidden');
 
     // Reset Nav States
-    [navHome, navBooking, navComments, navContact].forEach(el => {
+    [navHome, navComments, navContact].forEach(el => {
         if (el) el.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
     });
-    [mNavHome, mNavBooking, mNavComments, mNavContact].forEach(el => {
+    [mNavHome, mNavComments, mNavContact].forEach(el => {
         if (el) {
             el.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
             const indicator = el.querySelector('.m-nav-indicator');
@@ -1627,15 +1576,6 @@ function switchView(viewName) {
             const ind = mNavHome.querySelector('.m-nav-indicator');
             if (ind) ind.classList.remove('hidden');
         }
-    } else if (viewName === 'booking') {
-        if (bookingView) bookingView.classList.remove('hidden');
-        if (navBooking) navBooking.className = "text-sm font-bold text-white hover:text-primary transition-colors";
-        if (mNavBooking) {
-            mNavBooking.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
-            const ind = mNavBooking.querySelector('.m-nav-indicator');
-            if (ind) ind.classList.remove('hidden');
-        }
-        renderFloorMap(bookingState.selectedZone);
     } else if (viewName === 'comments') {
         if (commentsView) commentsView.classList.remove('hidden');
         if (navComments) navComments.className = "text-sm font-bold text-white hover:text-primary transition-colors";
@@ -1654,6 +1594,7 @@ function switchView(viewName) {
             if (ind) ind.classList.remove('hidden');
         }
     }
+    // Only scroll to top on actual view switch
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1784,6 +1725,59 @@ function setCommentRating(stars) {
     });
 }
 
+function getCategoryDisplayName(key, lang) {
+    if (!key) return lang === 'ar' ? 'قسم جديد' : 'New Category';
+
+    const category = (currentCategories || []).find(cat =>
+        cat.id === key || cat.name === key || cat.dbName === key || cat.name_ar === key || cat.name_en === key
+    );
+
+    if (category) {
+        if (lang === 'ar') return category.name_ar || category.name || key;
+        return category.name_en || category.name || category.name_ar || key;
+    }
+
+    return key;
+}
+
+function buildMenuPages(activeItems) {
+    const pages = [];
+    const seen = new Set();
+    const categoryOrder = [];
+
+    if (Array.isArray(currentCategories) && currentCategories.length) {
+        currentCategories.forEach(cat => {
+            const key = cat.name || cat.id;
+            if (key && !seen.has(key)) {
+                seen.add(key);
+                categoryOrder.push(key);
+            }
+        });
+    }
+
+    activeItems.forEach(item => {
+        const key = item.category || 'other';
+        if (!seen.has(key)) {
+            seen.add(key);
+            categoryOrder.push(key);
+        }
+    });
+
+    categoryOrder.forEach(categoryKey => {
+        const categoryItems = activeItems.filter(item => (item.category || 'other') === categoryKey);
+        for (let i = 0; i < categoryItems.length; i += 3) {
+            pages.push({
+                category: categoryKey,
+                items: categoryItems.slice(i, i + 3),
+                segment: Math.floor(i / 3) + 1,
+                totalSegments: Math.ceil(categoryItems.length / 3)
+            });
+        }
+    });
+
+    return pages;
+}
+
 function renderDynamicFlipbook() {
     const book = document.getElementById('sushi-book');
     if (!book) return;
@@ -1800,42 +1794,28 @@ function renderDynamicFlipbook() {
 
     // Filter available items
     const activeItems = currentMenuItems.filter(item => item.available !== false);
+    const menuPages = buildMenuPages(activeItems);
 
-    // Chunk active items into page sides of up to 2 items
-    const pageSides = [];
-    for (let i = 0; i < activeItems.length; i += 2) {
-        pageSides.push(activeItems.slice(i, i + 2));
-    }
-
-    const P = pageSides.length;
-    let totalPages = 1; // Start with Cover page
-
-    if (P > 0) {
-        // We render dynamic pages
-        // Each book page (starting from ID 2) contains up to 2 page sides (front and back)
-        const bookPages = [];
-        for (let j = 0; j < P; j += 2) {
-            bookPages.push({
-                frontSide: pageSides[j],
-                backSide: pageSides[j + 1] || null // null means unoccupied, will place Back Cover here
-            });
-        }
-
-        bookPages.forEach((bp, index) => {
+    if (menuPages.length > 0) {
+        menuPages.forEach((pageData, index) => {
             const pageNum = index + 2;
             const pageElement = document.createElement('div');
             pageElement.className = 'book-page';
             pageElement.id = `book-page-${pageNum}`;
 
-            // Create front side
-            let frontItemsHtml = bp.frontSide.map(item => renderBookItemHtml(item, lang, currency)).join('');
-            let frontHtml = `
+            const categoryTitle = getCategoryDisplayName(pageData.category, lang);
+            const categoryMeta = pageData.totalSegments > 1
+                ? `${categoryTitle} · ${lang === 'ar' ? 'الجزء' : 'Part'} ${pageData.segment}/${pageData.totalSegments}`
+                : categoryTitle;
+
+            const frontItemsHtml = pageData.items.map(item => renderBookItemHtml(item, lang, currency)).join('');
+            const frontHtml = `
                 <div class="page-front p-6 md:p-8 bg-[#132f34] border-y-2 border-r-2 border-[#d4a17b]/40 rounded-r-3xl shadow-[8px_8px_0px_0px_#d4a17b] flex flex-col justify-between">
                     <div class="text-start flex-grow">
                         <div class="flex justify-between items-start mb-6 border-b border-[#d4a17b]/20 pb-4">
                             <div>
-                                <span class="text-xs text-[#d4a17b] font-black uppercase tracking-wider">${lang === 'ar' ? 'اختياراتنا الخاصة' : 'SPECIAL SELECTIONS'}</span>
-                                <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5">${lang === 'ar' ? 'قائمة الطعام الفاخرة' : 'Signature Menu Selections'}</h3>
+                                <span class="text-xs text-[#d4a17b] font-black uppercase tracking-wider">${lang === 'ar' ? 'القائمة' : 'MENU'}</span>
+                                <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5">${categoryMeta}</h3>
                             </div>
                         </div>
                         <div class="space-y-4">
@@ -1849,23 +1829,17 @@ function renderDynamicFlipbook() {
                 </div>
             `;
 
-            // Create back side
             let backHtml = '';
-            if (bp.backSide) {
-                // Render back items
-                let backItemsHtml = bp.backSide.map(item => renderBookItemHtml(item, lang, currency)).join('');
+            if (index < menuPages.length - 1) {
+                const nextTitle = getCategoryDisplayName(menuPages[index + 1].category, lang);
                 backHtml = `
                     <div class="page-back flex flex-col justify-between p-6 md:p-8 bg-[#0b272a] border-y-2 border-l-2 border-[#d4a17b]/40 rounded-l-3xl shadow-inner">
-                        <div class="text-start flex-grow">
-                            <div class="flex justify-between items-start mb-6 border-b border-[#d4a17b]/20 pb-4">
-                                <div>
-                                    <span class="text-xs text-[#d4a17b] font-black uppercase tracking-wider">${lang === 'ar' ? 'نكهات أصيلة' : 'AUTHENTIC FLAVORS'}</span>
-                                    <h3 class="text-xl md:text-2xl font-black text-white font-serif mt-0.5">${lang === 'ar' ? 'أطباق السوشي المميزة' : 'Exquisite Sushi Plates'}</h3>
-                                </div>
-                            </div>
-                            <div class="space-y-4">
-                                ${backItemsHtml}
-                            </div>
+                        <div class="my-auto text-center">
+                            <span class="text-xs text-[#d4a17b] font-black uppercase tracking-wider">${lang === 'ar' ? 'التالي في القائمة' : 'NEXT IN THE MENU'}</span>
+                            <h3 class="text-2xl font-black text-white font-serif mt-4 mb-3">${nextTitle}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto">
+                                ${lang === 'ar' ? 'اقلب الصفحة لمشاهدة المزيد من الأطباق من نفس القائمة.' : 'Flip the page to discover more dishes from the next menu.'}
+                            </p>
                         </div>
                         <div class="flex justify-between items-center text-[10px] text-[#d4a17b] font-bold border-t border-[#d4a17b]/20 pt-4">
                             <span>NORI &amp; RICE</span>
@@ -1874,58 +1848,18 @@ function renderDynamicFlipbook() {
                     </div>
                 `;
             } else {
-                // If bp.backSide is null, then the back side of this page is the Back Cover!
                 backHtml = renderBackCoverHtml(lang);
             }
 
             pageElement.innerHTML = frontHtml + backHtml;
             book.appendChild(pageElement);
-            totalPages = pageNum;
         });
-
-        // If bp.backSide of the last page was NOT null (meaning P was even), we need one more page for Back Cover!
-        if (P % 2 === 0) {
-            const pageNum = bookPages.length + 2;
-            const pageElement = document.createElement('div');
-            pageElement.className = 'book-page';
-            pageElement.id = `book-page-${pageNum}`;
-
-            // Front side is promo
-            let promoHtml = `
-                <div class="page-front p-6 md:p-8 bg-[#132f34] border-y-2 border-r-2 border-[#d4a17b]/40 rounded-r-3xl shadow-[8px_8px_0px_0px_#d4a17b] flex flex-col justify-between">
-                    <div class="my-auto text-center space-y-6">
-                        <div class="w-16 h-16 bg-[#d4a17b]/10 text-primary rounded-full flex items-center justify-center mx-auto border border-primary/20">
-                            <span class="material-symbols-outlined text-3xl">star</span>
-                        </div>
-                        <h3 class="text-2xl font-black text-white font-serif">${lang === 'ar' ? 'شاركنا رأيك' : 'Share Your Experience'}</h3>
-                        <p class="text-xs text-slate-300 leading-relaxed max-w-[240px] mx-auto text-center">
-                            ${lang === 'ar' ? 'رأيكم يهمنا ويسعدنا دائماً. شاركنا تجربتك الفريدة لمساعدتنا في تقديم الأفضل.' : 'Your feedback is highly valued. Share your luxury dining experience with us!'}
-                        </p>
-                        <button onclick="switchView('comments')" class="px-6 py-3 rounded-xl bg-primary text-[#0b272a] font-black text-xs border border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all mx-auto">
-                            ${lang === 'ar' ? 'تصفح آراء العملاء' : 'Browse Guest Reviews'}
-                        </button>
-                    </div>
-                    <div class="flex justify-between items-center text-[10px] text-[#d4a17b] font-bold border-t border-[#d4a17b]/20 pt-4">
-                        <span>NORI &amp; RICE</span>
-                        <span>PAGE ${pageNum * 2 - 2}</span>
-                    </div>
-                </div>
-            `;
-
-            // Back side is Back Cover
-            let backHtml = renderBackCoverHtml(lang);
-
-            pageElement.innerHTML = promoHtml + backHtml;
-            book.appendChild(pageElement);
-            totalPages = pageNum;
-        }
     } else {
-        // If there are no dynamic items, we still render a simple Page 2 with a friendly notice and back cover
         const pageElement = document.createElement('div');
         pageElement.className = 'book-page';
         pageElement.id = 'book-page-2';
 
-        let frontHtml = `
+        const frontHtml = `
             <div class="page-front p-6 md:p-8 bg-[#132f34] border-y-2 border-r-2 border-[#d4a17b]/40 rounded-r-3xl shadow-[8px_8px_0px_0px_#d4a17b] flex flex-col justify-between">
                 <div class="my-auto text-center py-12">
                     <span class="material-symbols-outlined text-4xl text-[#d4a17b]/60 mb-2">restaurant_menu</span>
@@ -1937,17 +1871,13 @@ function renderDynamicFlipbook() {
                 </div>
             </div>
         `;
-        let backHtml = renderBackCoverHtml(lang);
-
+        const backHtml = renderBackCoverHtml(lang);
         pageElement.innerHTML = frontHtml + backHtml;
         book.appendChild(pageElement);
-        totalPages = 2;
     }
 
-    // Update global state of total flipbook pages
-    maxFlipbookPages = totalPages;
-
-    // Trigger flipbook update to reset visual state
+    maxFlipbookPages = book.querySelectorAll('.book-page').length;
+    currentFlipbookPage = Math.min(currentFlipbookPage, maxFlipbookPages);
     updateFlipbook();
 }
 
@@ -1958,12 +1888,12 @@ function renderBookItemHtml(item, lang, currency) {
 
     const hasOptions = !!item.options;
     const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const buttonAction = `openCustomizer('${safeItemId}')`;
     const buttonText = hasOptions ? (lang === 'ar' ? 'تخصيص' : 'Customize') : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
     const buttonIcon = hasOptions ? 'tune' : 'visibility';
+    const buttonAction = `openCustomizer('${safeItemId}')`;
 
     return `
-        <div onclick="openCustomizer('${safeItemId}')" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
+        <div onclick="${buttonAction}" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
             <div class="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
                 <img src="${optimizeCloudinaryUrl(imageSrc, 400)}" class="w-full h-full object-cover" alt="${name}">
             </div>
@@ -1974,7 +1904,7 @@ function renderBookItemHtml(item, lang, currency) {
                 </div>
                 <div class="flex justify-between items-center mt-2">
                     <span class="text-xs font-black text-[#d4a17b]">${item.price} ${currency}</span>
-                    <button onclick="event.stopPropagation(); ${buttonAction}" class="px-3 py-1.5 rounded-xl bg-primary text-[#0b272a] font-black text-[9px] border border-[#0b272a] shadow-[2px_2px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1">
+                    <button onclick="event.stopPropagation(); ${buttonAction}" class="px-3 py-1.5 rounded-xl bg-primary text-[#0b272a] shadow-[2px_2px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 font-black text-[9px] border border-[#0b272a] transition-all flex items-center gap-1">
                         <span class="material-symbols-outlined text-[10px]">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>

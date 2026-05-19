@@ -8,6 +8,7 @@ import {
     addDoc,
     getDocs,
     query,
+    where,
     orderBy,
     doc,
     getDoc,
@@ -276,6 +277,56 @@ export async function getQRScans() {
     }
 }
 
+// --- OFFERS ---
+
+/**
+ * Fetch active offers
+ */
+export async function getActiveOffers() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "offers"));
+        const now = new Date().toISOString();
+        return querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(offer => !offer.expiryDate || offer.expiryDate > now);
+    } catch (error) {
+        console.error("Error getting offers: ", error);
+        return [];
+    }
+}
+
+/**
+ * Save or update an offer
+ */
+export async function saveOffer(offerData) {
+    try {
+        if (offerData.id) {
+            const docRef = doc(db, "offers", offerData.id);
+            const dataToSave = { ...offerData };
+            return await setDoc(docRef, dataToSave, { merge: true }) && offerData.id;
+        } else {
+            const { id, ...dataToSave } = offerData;
+            const docRef = await addDoc(collection(db, "offers"), dataToSave);
+            return docRef.id;
+        }
+    } catch (error) {
+        console.error("Error saving offer: ", error);
+        throw error;
+    }
+}
+
+/**
+ * Delete an offer
+ */
+export async function deleteOffer(id) {
+    try {
+        await deleteDoc(doc(db, "offers", id));
+    } catch (error) {
+        console.error("Error deleting offer: ", error);
+        throw error;
+    }
+}
+
 // --- FEEDBACK & COMMENTS ---
 
 /**
@@ -339,6 +390,53 @@ export async function saveOrder(orderData) {
     } catch (error) {
         console.error("Error saving order: ", error);
         throw error;
+    }
+}
+
+/**
+ * Save or update customer data in Firestore
+ */
+export async function saveCustomer(customerData) {
+    try {
+        const normalizedPhone = customerData.phone.replace(/[^0-9\+]/g, '');
+        const existing = await getCustomerByPhone(normalizedPhone);
+        const payload = {
+            name: customerData.name,
+            phone: normalizedPhone,
+            address: customerData.address,
+            updatedAt: new Date().toISOString()
+        };
+
+        if (existing && existing.id) {
+            const docRef = doc(db, "customers", existing.id);
+            await setDoc(docRef, { ...existing, ...payload }, { merge: true });
+            return existing.id;
+        }
+
+        const docRef = await addDoc(collection(db, "customers"), payload);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error saving customer: ", error);
+        throw error;
+    }
+}
+
+/**
+ * Get existing customer data by phone number
+ */
+export async function getCustomerByPhone(phone) {
+    try {
+        const normalizedPhone = phone.replace(/[^0-9\+]/g, '');
+        const q = query(collection(db, "customers"), where("phone", "==", normalizedPhone));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const docSnap = querySnapshot.docs[0];
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching customer by phone: ", error);
+        return null;
     }
 }
 
