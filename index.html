@@ -156,15 +156,14 @@
                 <!-- --- Shoppable Interactive Book Section --- -->
                 <div id="book-menu-wrapper" class="w-full flex flex-col items-center justify-center py-6">
                     <!-- Flipbook Container -->
-                    <div
-                        class="flipbook-outer flex items-center justify-center w-full max-w-[900px] overflow-visible relative px-4">
+                    <div class="flipbook-outer flex items-center justify-center w-full max-w-[900px] overflow-visible relative px-4">
 
-<!-- Book Navigation Buttons (Left/Right Arrows) - Hidden on mobile -->
-<button onclick="flipbookPrevPage()"
-    class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full hidden items-center justify-center transition-all duration-300 active:scale-90"
-    style="display: none !important;">
-    <span class="material-symbols-outlined">arrow_back_ios</span>
-</button>
+                        <!-- Book Navigation Buttons (Left/Right Arrows) - Visible on desktop only -->
+                        <button id="flipbook-prev-button" type="button"
+                            class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            aria-label="Next page">
+                            <span class="material-symbols-outlined">arrow_back_ios</span>
+                        </button>
 
                         <!-- The actual 3D Book -->
                         <div class="sushi-book" id="sushi-book">
@@ -223,30 +222,14 @@
                                     </div>
                                 </div>
                             </div>
-                                            الكتالوج التفاعلي بحب ليوفر لكم تجربة طعام استثنائية تحاكي الفخامة
-                                            اليابانية.</p>
-                                    </div>
-
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Book Navigation Buttons (Left/Right Arrows) -->
-                        <button onclick="flipbookNextPage()"
-                            class="absolute right-0 md:-right-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full hidden md:flex items-center justify-center transition-all duration-300 active:scale-90">
+                        <button id="flipbook-next-button" type="button"
+                            class="absolute right-0 md:-right-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            aria-label="Previous page">
                             <span class="material-symbols-outlined">arrow_forward_ios</span>
                         </button>
-
-                    </div>
-
-                    <!-- Flipbook Progress Bar Tracker indicator -->
-                    <div class="hidden md:flex items-center gap-3 mt-8">
-                        <span class="text-xs text-slate-500 font-bold" id="flipbook-page-num">الصفحة: 1 / 4</span>
-                        <div class="w-48 h-1 bg-white/5 rounded-full overflow-hidden relative">
-                            <div id="flipbook-progress"
-                                class="absolute top-0 bottom-0 left-0 bg-primary transition-all duration-500"
-                                style="width: 25%;"></div>
-                        </div>
                     </div>
                 </div>
 
@@ -540,7 +523,7 @@
             </button>
 
             <h3 class="text-2xl font-black text-white mb-2" id="upsell-title">إضافة مميزة! 🍣</h3>
-            <p class="text-xs text-slate-300 font-bold mb-6 leading-relaxed px-2">هل ترغب في إضافة مشروب منعش أو صوص
+            <p class="text-xs text-slate-300 font-bold mb-6 leading-relaxed px-2">هل ترغب في إضافة مشروب منعش أو صصوص
                 جانبي يضاعف متعة وجبتك؟ ✨</p>
 
             <!-- Recommendations Grid -->
@@ -568,6 +551,30 @@
     <script src="./js/translations.js"></script>
     <script src="./js/data.js"></script>
     <script type="module" src="./js/app.js"></script>
+    <script>
+        function switchView(viewName) {
+            const homeView = document.getElementById('home-view');
+            const contactView = document.getElementById('contact-view');
+            const commentsView = document.getElementById('comments-view');
+            const bookingView = document.getElementById('booking-view'); // ضفنا ده
+            const heroSection = document.getElementById('hero-section');
+
+            // إخفاء الكل أولاً
+            [homeView, contactView, commentsView, bookingView].forEach(v => v?.classList.add('hidden'));
+
+            if (viewName === 'home') {
+                homeView.classList.remove('hidden');
+                heroSection?.classList.remove('hidden');
+                // ... (تحديث الـ Nav active state)
+            } else if (viewName === 'booking') {
+                bookingView.classList.remove('hidden');
+                heroSection?.classList.add('hidden');
+                renderFloorMap(bookingState.selectedZone);
+                // ...
+            }
+            // ...
+        }
+    </script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-/* ==========================================================================
+ /**======================================================================
    NORI & RICE - LUXURY SUSHI LOUNGE CORE APPLICATION ENGINE
    ========================================================================== */
 
@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.slideCustomizerGallery = slideCustomizerGallery;
     window.selectCustomizerPiece = selectCustomizerPiece;
     window.selectCustomizerRice = selectCustomizerRice;
+    window.selectCustomizerSize = selectCustomizerSize;
+    window.selectCustomizerMethod = selectCustomizerMethod;
     window.toggleCustomizerAddon = toggleCustomizerAddon;
     window.addCustomizedToCart = addCustomizedToCart;
     window.adjustCartQty = adjustCartQty;
@@ -207,6 +209,16 @@ function initEvents() {
             updateTicketSummary();
         });
     });
+
+    // Flipbook arrow buttons
+    const flipbookPrevButton = document.getElementById('flipbook-prev-button');
+    const flipbookNextButton = document.getElementById('flipbook-next-button');
+    if (flipbookPrevButton) {
+        flipbookPrevButton.addEventListener('click', flipbookNextPage);
+    }
+    if (flipbookNextButton) {
+        flipbookNextButton.addEventListener('click', flipbookPrevPage);
+    }
 }
 
 // --- Bilingual Translation Engine ---
@@ -390,13 +402,15 @@ function renderMenu() {
             `;
         }
 
-        const buttonText = item.options ? translations[lang].btn_customize : translations[lang].btn_add_order;
-        const buttonAction = item.options ? `openCustomizer('${item.id}')` : `addToOrderSimple('${item.id}')`;
+        const buttonText = item.options ? translations[lang].btn_customize : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
+        const buttonIcon = item.options ? 'tune' : 'visibility';
+        const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const buttonAction = `openCustomizer('${safeItemId}')`;
 
         html += `
-            <div class="bg-[#132f34] border-2 border-[#d4a17b]/40 rounded-3xl overflow-hidden flex flex-col group animate-slide-up shadow-[6px_6px_0px_0px_#d4a17b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-300">
+            <div class="bg-[#132f34] border-2 border-[#d4a17b]/40 rounded-3xl overflow-hidden flex flex-col group animate-slide-up shadow-[6px_6px_0px_0px_#d4a17b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-300 cursor-pointer">
                 <!-- Thumbnail (No Dark Overlay for Vivid Food Display) -->
-                <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="openCustomizer('${item.id}')">
+                <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="openCustomizer('${safeItemId}')">
                     <img src="${optimizeCloudinaryUrl(item.images[0], 600)}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
                     
                     <!-- Floating Price Tag (Top Left) -->
@@ -415,7 +429,7 @@ function renderMenu() {
                             <h3 class="text-2xl font-black text-white group-hover:text-primary transition-colors leading-tight">${name}</h3>
                             <span class="text-[10px] bg-[#0b272a] text-[#d4a17b] px-3 py-1 font-black border border-[#d4a17b]/40 rounded-lg shadow-sm uppercase flex-shrink-0">${item.category}</span>
                         </div>
-                        <p class="text-sm text-slate-300 line-clamp-2 mb-6 h-10 leading-relaxed">${desc}</p>
+                        <p class="text-sm text-slate-300 line-clamp-2 mb-4 leading-relaxed">${desc}</p>
                         
                         <!-- Popular ordering tracker info -->
                         <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-6">
@@ -425,8 +439,8 @@ function renderMenu() {
                     </div>
                     
                     <!-- Full Width Prominent Button (Matching two.html) -->
-                    <button onclick="${buttonAction}" class="mt-auto w-full bg-primary text-[#0b272a] font-black py-4 border-2 border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
-                        <span class="material-symbols-outlined font-black text-lg">${item.options ? 'tune' : 'add_shopping_cart'}</span>
+                    <button onclick="event.stopPropagation(); ${buttonAction}" class="mt-auto w-full bg-primary text-[#0b272a] font-black py-4 border-2 border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
+                        <span class="material-symbols-outlined font-black text-lg">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>
                 </div>
@@ -484,9 +498,11 @@ function openCustomizer(itemId, preserveChoices = false) {
     // Reset choices only on first open
     if (!preserveChoices) {
         customizationChoices = {
-            pieces: item.options.pieces ? item.options.pieces[0] : 8,
+            pieces: item.options?.pieces ? item.options.pieces[0] : 8,
             rice: 'white',
-            addons: []
+            addons: [],
+            size: item.options?.sizes?.length ? (typeof item.options.sizes[0] === 'string' ? item.options.sizes[0] : item.options.sizes[0].name) : null,
+            method: item.options?.methods?.length ? (typeof item.options.methods[0] === 'string' ? item.options.methods[0] : item.options.methods[0].name) : null
         };
     }
 
@@ -498,19 +514,99 @@ function openCustomizer(itemId, preserveChoices = false) {
 
     const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
     const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
+    const ingredientText = lang === 'ar' ? (item.ingredients_ar || item.ingredients || item.details_ar || item.details) : (item.ingredients_en || item.ingredients || item.details_en || item.details);
 
     // 1. Piece options selector
     let piecesHtml = '';
-    if (item.options.pieces) {
+    if (item.options?.pieces) {
         piecesHtml = `
             <div class="mb-6">
                 <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].piece_count}</label>
-                <div class="flex gap-3">
+                <div class="flex gap-3 flex-wrap">
                     ${item.options.pieces.map(pcs => `
-                        <button onclick="selectCustomizerPiece(${pcs})" id="btn-pcs-${pcs}" class="flex-1 py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.pieces === pcs ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
+                        <button onclick="selectCustomizerPiece(${pcs})" id="btn-pcs-${pcs}" class="flex-1 min-w-[90px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.pieces === pcs ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
                             ${pcs} ${translations[lang].pieces}
                         </button>
                     `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    let sizesHtml = '';
+    if (item.options?.sizes?.length) {
+        sizesHtml = `
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].size_options_title}</label>
+                <div class="flex gap-3 flex-wrap">
+                    ${item.options.sizes.map(sizeObj => {
+                        const sizeName = typeof sizeObj === 'string' ? sizeObj : sizeObj.name;
+                        const sizePrice = typeof sizeObj === 'object' ? sizeObj.price : null;
+                        const safeSizeName = sizeName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return `
+                            <button onclick="selectCustomizerSize('${safeSizeName}')" id="btn-size-${sizeName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[110px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.size === sizeName ? 'bg-secondary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-secondary'}">
+                                <div class="flex flex-col gap-1">
+                                    <span>${sizeName}</span>
+                                    ${sizePrice != null ? `<span class="text-[11px] font-black text-[#d4a17b]">${sizePrice} ${translations[lang].price_currency}</span>` : ''}
+                                </div>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    let methodsHtml = '';
+    if (item.options?.methods?.length) {
+        methodsHtml = `
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].cooking_methods_title}</label>
+                <div class="flex gap-3 flex-wrap">
+                    ${item.options.methods.map(methodObj => {
+                        const methodName = typeof methodObj === 'string' ? methodObj : methodObj.name;
+                        const methodPrice = typeof methodObj === 'object' ? methodObj.price : null;
+                        const safeMethodName = methodName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return `
+                            <button onclick="selectCustomizerMethod('${safeMethodName}')" id="btn-method-${methodName.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex-1 min-w-[120px] py-3 px-4 border-2 border-[#d4a17b]/40 rounded-2xl font-black text-sm text-center transition-all ${customizationChoices.method === methodName ? 'bg-purple-500 text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-purple-500'}">
+                                <div class="flex flex-col gap-1">
+                                    <span>${methodName}</span>
+                                    ${methodPrice != null ? `<span class="text-[11px] font-black text-purple-200">+${methodPrice} ${translations[lang].price_currency}</span>` : `<span class="text-[11px] opacity-70">${translations[lang].free_label || ''}</span>`}
+                                </div>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    let addonsHtml = '';
+    const addonOptions = item.options?.addons?.length ? item.options.addons : [
+        { key: 'creamcheese', label: translations[lang].addon_creamcheese, price: 20 },
+        { key: 'avocado', label: translations[lang].addon_avocado, price: 15 },
+        { key: 'tempura', label: translations[lang].addon_tempura, price: 10 },
+        { key: 'spicymayo', label: translations[lang].addon_spicymayo, price: 10 },
+        { key: 'caviar', label: translations[lang].addon_caviar, price: 40 }
+    ];
+
+    if (addonOptions.length) {
+        addonsHtml = `
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].addons_title}</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${addonOptions.map(addon => {
+                        const addonKey = typeof addon === 'string' ? addon : (addon.key || addon.name);
+                        const addonLabel = typeof addon === 'string' ? (translations[lang][`addon_${addon}`] || addon) : (addon.label || addon.name);
+                        const addonPrice = typeof addon === 'object' ? addon.price : null;
+                        const safeAddonKey = String(addonKey).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        return `
+                            <button onclick="toggleCustomizerAddon('${safeAddonKey}')" id="card-addon-${addonKey.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="flex items-center justify-between p-4 border-2 border-[#d4a17b]/40 rounded-2xl cursor-pointer transition-all ${customizationChoices.addons.includes(addonKey) ? 'bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#d4a17b] translate-x-0.5 translate-y-0.5' : 'bg-[#0b272a] text-slate-300 hover:border-primary'}">
+                                <span class="text-sm font-black">${addonLabel}</span>
+                                ${addonPrice != null ? `<span class="text-xs font-black text-[#d4a17b]">+${addonPrice} ${translations[lang].price_currency}</span>` : ''}
+                            </button>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -582,10 +678,13 @@ function openCustomizer(itemId, preserveChoices = false) {
                      
                      <h2 class="text-2xl md:text-3xl font-bold text-primary mb-2">${name}</h2>
                      <p class="text-sm text-slate-300 mb-4 leading-relaxed">${desc}</p>
-                     ${item.ingredients ? `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">المكونات:</span> ${item.ingredients}</p>` : `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">المكونات:</span> سوشي ممتاز محضر بعناية ومكونات طازجة.</p>`}
-                     
+                     ${ingredientText ? `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${ingredientText}</p>` : `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${lang === 'ar' ? 'سوشي ممتاز محضر بعناية ومكونات طازجة.' : 'Premium sushi crafted with care and fresh ingredients.'}</p>`}
+
                      <div class="space-y-6">
                         ${piecesHtml}
+                        ${sizesHtml}
+                        ${methodsHtml}
+                        ${addonsHtml}
                         ${riceHtml}
                      </div>
                 </div>
@@ -634,6 +733,16 @@ function selectCustomizerRice(riceKey) {
     openCustomizer(activeItemForCustomization.id, true);
 }
 
+function selectCustomizerSize(sizeName) {
+    customizationChoices.size = sizeName;
+    openCustomizer(activeItemForCustomization.id, true);
+}
+
+function selectCustomizerMethod(methodName) {
+    customizationChoices.method = methodName;
+    openCustomizer(activeItemForCustomization.id, true);
+}
+
 function toggleCustomizerAddon(addonKey) {
     const idx = customizationChoices.addons.indexOf(addonKey);
     if (idx > -1) {
@@ -658,8 +767,12 @@ function updateCustomizerPrice() {
     // Base calculations
     let basePrice = item.price;
 
-    // Apply piece multiplier
-    if (item.options.pieces && item.options.pieceMultiplier) {
+    if (item.options?.sizes?.length && customizationChoices.size) {
+        const selectedSize = item.options.sizes.find(sz => (typeof sz === 'string' ? sz : sz.name) === customizationChoices.size);
+        if (selectedSize && typeof selectedSize === 'object' && selectedSize.price != null) {
+            basePrice = selectedSize.price;
+        }
+    } else if (item.options?.pieces && item.options.pieceMultiplier) {
         const multiplier = item.options.pieceMultiplier[customizationChoices.pieces] || 1.0;
         basePrice = Math.round(basePrice * multiplier);
     }
@@ -669,14 +782,32 @@ function updateCustomizerPrice() {
     if (customizationChoices.rice === 'brown') riceSurcharge = 15;
     if (customizationChoices.rice === 'black') riceSurcharge = 25;
 
+    // Surcharges for Cooking Method
+    let methodSurcharge = 0;
+    if (item.options?.methods?.length && customizationChoices.method) {
+        const selectedMethod = item.options.methods.find(m => (typeof m === 'string' ? m : m.name) === customizationChoices.method);
+        if (selectedMethod && typeof selectedMethod === 'object' && selectedMethod.price != null) {
+            methodSurcharge = selectedMethod.price;
+        }
+    }
+
     // Surcharges for Addons
     let addonsSurcharge = 0;
-    const addonPrices = { creamcheese: 20, avocado: 15, tempura: 10, spicymayo: 10, caviar: 40 };
+    const addonPrices = {};
+    if (item.options?.addons?.length) {
+        item.options.addons.forEach(addon => {
+            const addonKey = typeof addon === 'string' ? addon : (addon.key || addon.name);
+            const addonPrice = typeof addon === 'object' ? addon.price : null;
+            if (addonPrice != null) addonPrices[addonKey] = addonPrice;
+        });
+    } else {
+        Object.assign(addonPrices, { creamcheese: 20, avocado: 15, tempura: 10, spicymayo: 10, caviar: 40 });
+    }
     customizationChoices.addons.forEach(ad => {
         addonsSurcharge += (addonPrices[ad] || 0);
     });
 
-    const finalComputed = basePrice + riceSurcharge + addonsSurcharge;
+    const finalComputed = basePrice + riceSurcharge + methodSurcharge + addonsSurcharge;
 
     const priceDisplay = document.getElementById('customizer-computed-price');
     if (priceDisplay) {
@@ -716,8 +847,10 @@ function addCustomizedToCart() {
         image: item.images[0],
         customizations: {
             pieces: customizationChoices.pieces,
+            size: customizationChoices.size,
+            method: customizationChoices.method,
             rice: riceLabels[customizationChoices.rice],
-            addons: customizationChoices.addons.map(ad => addonLabels[ad])
+            addons: customizationChoices.addons.map(ad => addonLabels[ad] || ad)
         }
     };
 
@@ -896,10 +1029,6 @@ function updateCartUI() {
     if (mobileCount) {
         mobileCount.classList.remove('hidden');
         mobileCount.innerText = totalCount;
-    }
-
-    if (mobilePrice) {
-        mobilePrice.innerText = `${totalPrice} ${currency}`;
     }
 
     if (totalPriceDisplay) {
@@ -1408,31 +1537,7 @@ function updateFlipbook() {
     }
 
     // Update progress tracker
-    const pageNumText = document.getElementById('flipbook-page-num');
-    const progressBar = document.getElementById('flipbook-progress');
-    // Ensure pagination visibility matches view
-    if (!document.getElementById('home-view').classList.contains('hidden')) {
-        if (pageNumText) pageNumText.style.display = 'block';
-        if (progressBar) progressBar.style.display = 'block';
-    } else {
-        if (pageNumText) pageNumText.style.display = 'none';
-        if (progressBar) progressBar.style.display = 'none';
-    }
-    if (pageNumText) {
-        const lang = currentLanguage;
-        const total = maxFlipbookPages;
-        const current = Math.min(maxFlipbookPages, currentFlipbookPage);
-        if (lang === 'ar') {
-            pageNumText.innerText = `الصفحة: ${current} / ${total}`;
-        } else {
-            pageNumText.innerText = `Page: ${current} / ${total}`;
-        }
-    }
-
-    if (progressBar) {
-        const pct = ((Math.min(maxFlipbookPages, currentFlipbookPage) - 1) / (maxFlipbookPages - 1)) * 100;
-        progressBar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
-    }
+    // Element removed from HTML as per user request
 }
 
 function flipbookNextPage() {
@@ -1477,107 +1582,79 @@ function switchView(viewName) {
     const homeView = document.getElementById('home-view');
     const contactView = document.getElementById('contact-view');
     const commentsView = document.getElementById('comments-view');
+    const bookingView = document.getElementById('booking-view');
     const heroSection = document.getElementById('hero-section');
 
     const navHome = document.getElementById('nav-home');
+    const navBooking = document.getElementById('nav-booking');
     const navComments = document.getElementById('nav-comments');
     const navContact = document.getElementById('nav-contact');
 
     const mNavHome = document.getElementById('m-nav-home');
+    const mNavBooking = document.getElementById('m-nav-booking');
     const mNavComments = document.getElementById('m-nav-comments');
     const mNavContact = document.getElementById('m-nav-contact');
 
     const flipbookWrapper = document.getElementById('book-menu-wrapper');
 
+    // Hide all views
+    if (homeView) homeView.classList.add('hidden');
+    if (contactView) contactView.classList.add('hidden');
+    if (commentsView) commentsView.classList.add('hidden');
+    if (bookingView) bookingView.classList.add('hidden');
+    if (heroSection) heroSection.classList.add('hidden');
+    if (flipbookWrapper) flipbookWrapper.classList.add('hidden');
+
+    // Reset Nav States
+    [navHome, navBooking, navComments, navContact].forEach(el => {
+        if (el) el.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
+    });
+    [mNavHome, mNavBooking, mNavComments, mNavContact].forEach(el => {
+        if (el) {
+            el.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
+            const indicator = el.querySelector('.m-nav-indicator');
+            if (indicator) indicator.classList.add('hidden');
+        }
+    });
+
     if (viewName === 'home') {
         if (homeView) homeView.classList.remove('hidden');
         if (heroSection) heroSection.classList.remove('hidden');
-        if (contactView) contactView.classList.add('hidden');
-        if (commentsView) commentsView.classList.add('hidden');
         if (flipbookWrapper) flipbookWrapper.classList.remove('hidden');
-
         if (navHome) navHome.className = "text-sm font-bold text-white hover:text-primary transition-colors";
-        if (navComments) navComments.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
-        if (navContact) navContact.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
-
-        // Update Mobile Bottom Nav Active state
         if (mNavHome) {
             mNavHome.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
-            const indicator = mNavHome.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.remove('hidden');
+            const ind = mNavHome.querySelector('.m-nav-indicator');
+            if (ind) ind.classList.remove('hidden');
         }
-        if (mNavComments) {
-            mNavComments.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavComments.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
+    } else if (viewName === 'booking') {
+        if (bookingView) bookingView.classList.remove('hidden');
+        if (navBooking) navBooking.className = "text-sm font-bold text-white hover:text-primary transition-colors";
+        if (mNavBooking) {
+            mNavBooking.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
+            const ind = mNavBooking.querySelector('.m-nav-indicator');
+            if (ind) ind.classList.remove('hidden');
         }
-        if (mNavContact) {
-            mNavContact.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavContact.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        }
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        renderFloorMap(bookingState.selectedZone);
     } else if (viewName === 'comments') {
-        if (homeView) homeView.classList.add('hidden');
-        if (heroSection) heroSection.classList.add('hidden');
-        if (contactView) contactView.classList.add('hidden');
         if (commentsView) commentsView.classList.remove('hidden');
-        if (flipbookWrapper) flipbookWrapper.classList.add('hidden');
-
-        if (navHome) navHome.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
         if (navComments) navComments.className = "text-sm font-bold text-white hover:text-primary transition-colors";
-        if (navContact) navContact.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
-
-        // Update Mobile Bottom Nav Active state
-        if (mNavHome) {
-            mNavHome.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavHome.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        }
         if (mNavComments) {
             mNavComments.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
-            const indicator = mNavComments.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.remove('hidden');
+            const ind = mNavComments.querySelector('.m-nav-indicator');
+            if (ind) ind.classList.remove('hidden');
         }
-        if (mNavContact) {
-            mNavContact.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavContact.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        }
-
         renderComments();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (viewName === 'contact') {
-        if (homeView) homeView.classList.add('hidden');
-        if (heroSection) heroSection.classList.add('hidden');
-        if (commentsView) commentsView.classList.add('hidden');
         if (contactView) contactView.classList.remove('hidden');
-        if (flipbookWrapper) flipbookWrapper.classList.add('hidden');
-
-        if (navHome) navHome.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
-        if (navComments) navComments.className = "text-sm font-bold text-slate-400 hover:text-primary transition-colors";
         if (navContact) navContact.className = "text-sm font-bold text-white hover:text-primary transition-colors";
-
-        // Update Mobile Bottom Nav Active state
-        if (mNavHome) {
-            mNavHome.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavHome.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        }
-        if (mNavComments) {
-            mNavComments.className = "m-nav-item flex flex-col items-center justify-center relative w-16 h-full text-slate-400";
-            const indicator = mNavComments.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        }
         if (mNavContact) {
             mNavContact.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
-            const indicator = mNavContact.querySelector('.m-nav-indicator');
-            if (indicator) indicator.classList.remove('hidden');
+            const ind = mNavContact.querySelector('.m-nav-indicator');
+            if (ind) ind.classList.remove('hidden');
         }
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ==========================================================================
@@ -1880,12 +1957,13 @@ function renderBookItemHtml(item, lang, currency) {
     const imageSrc = item.images && item.images.length > 0 ? item.images[0] : '';
 
     const hasOptions = !!item.options;
-    const buttonAction = hasOptions ? `openCustomizer('${item.id}')` : `addToOrderSimple('${item.id}')`;
-    const buttonText = hasOptions ? (lang === 'ar' ? 'تخصيص' : 'Customize') : (lang === 'ar' ? 'إضافة' : 'Add');
-    const buttonIcon = hasOptions ? 'tune' : 'shopping_basket';
+    const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const buttonAction = `openCustomizer('${safeItemId}')`;
+    const buttonText = hasOptions ? (lang === 'ar' ? 'تخصيص' : 'Customize') : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
+    const buttonIcon = hasOptions ? 'tune' : 'visibility';
 
     return `
-        <div class="group flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
+        <div onclick="openCustomizer('${safeItemId}')" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
             <div class="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
                 <img src="${optimizeCloudinaryUrl(imageSrc, 400)}" class="w-full h-full object-cover" alt="${name}">
             </div>
@@ -1896,7 +1974,7 @@ function renderBookItemHtml(item, lang, currency) {
                 </div>
                 <div class="flex justify-between items-center mt-2">
                     <span class="text-xs font-black text-[#d4a17b]">${item.price} ${currency}</span>
-                    <button onclick="${buttonAction}" class="px-3 py-1.5 rounded-xl bg-primary text-[#0b272a] font-black text-[9px] border border-[#0b272a] shadow-[2px_2px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1">
+                    <button onclick="event.stopPropagation(); ${buttonAction}" class="px-3 py-1.5 rounded-xl bg-primary text-[#0b272a] font-black text-[9px] border border-[#0b272a] shadow-[2px_2px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center gap-1">
                         <span class="material-symbols-outlined text-[10px]">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>

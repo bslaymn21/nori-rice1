@@ -493,8 +493,10 @@ function renderFeedback() {
                         </div>
                         <div>
                             <h4 class="font-bold text-sm text-slate-900 dark:text-white">${fb.name || 'زائر كريم'}</h4>
-                            <div class="flex items-center gap-2 mt-0.5">
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mt-1">${fb.phone || fb.phoneNumber || 'رقم غير متوفر'}</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
                                 <div class="flex gap-0.5">${stars}</div>
+                                <span class="text-[10px] text-slate-400 font-bold">${fb.rating || 0}/5</span>
                                 <span class="text-[10px] text-slate-400 font-bold">• ${dateStr}</span>
                             </div>
                         </div>
