@@ -51,7 +51,7 @@
                     <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">اسم المستخدم</label>
                     <div class="relative">
                         <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">person</span>
-                        <input type="text" id="username" required placeholder="admin"
+                        <input type="text" id="username" required placeholder="admin" autocapitalize="none" autocorrect="off" autocomplete="username"
                             class="w-full pr-12 pl-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-secondary focus:ring-0 transition-all text-white outline-none font-bold">
                     </div>
                 </div>
@@ -120,7 +120,7 @@
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
+            const user = document.getElementById('username').value.trim().toLowerCase();
             const pass = document.getElementById('password').value.trim();
             const remember = document.getElementById('remember-me').checked;
             const error = document.getElementById('error-msg');

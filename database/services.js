@@ -488,7 +488,8 @@ export async function deleteOrder(orderId) {
  */
 export async function verifyAdmin(username, password) {
     try {
-        const docRef = doc(db, "admins", username);
+        const normalizedUsername = (username || '').trim().toLowerCase();
+        const docRef = doc(db, "admins", normalizedUsername);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().password === password) {
             return docSnap.data();
@@ -502,14 +503,16 @@ export async function verifyAdmin(username, password) {
 
 export async function updateAdminPassword(username, newPassword) {
     try {
-        const docRef = doc(db, "admins", username);
+        const normalizedUsername = (username || '').trim().toLowerCase();
+        const docRef = doc(db, "admins", normalizedUsername);
         await updateDoc(docRef, { password: newPassword });
         return true;
     } catch (error) {
         // If doc doesn't exist, create it (fallback)
         try {
-            const docRef = doc(db, "admins", username);
-            await setDoc(docRef, { username, password: newPassword });
+            const normalizedUsername = (username || '').trim().toLowerCase();
+            const docRef = doc(db, "admins", normalizedUsername);
+            await setDoc(docRef, { username: normalizedUsername, password: newPassword });
             return true;
         } catch (e) {
             return false;

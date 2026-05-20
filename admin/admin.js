@@ -551,8 +551,23 @@ async function toggleFeedbackStatus(feedbackId, status) {
  * --- SETTINGS MANAGEMENT ---
  */
 
+function formatPhoneNumber(phone) {
+    if (!phone) return '';
+    let trimmed = phone.trim();
+    if (trimmed.startsWith('+2')) {
+        return trimmed;
+    }
+    if (trimmed.startsWith('2')) {
+        return '+' + trimmed;
+    }
+    if (trimmed.startsWith('0')) {
+        return '+2' + trimmed;
+    }
+    return '+20' + trimmed;
+}
+
 function populateSettingsForm(settings) {
-    const fields = ['whatsapp', 'phone', 'social_fb', 'social_insta', 'social_tiktok', 'address_ar', 'mapLink', 'startTime', 'endTime'];
+    const fields = ['whatsapp', 'phone', 'social_fb', 'social_insta', 'social_tiktok', 'address_ar', 'startTime', 'endTime'];
     fields.forEach(f => {
         const el = document.getElementById(`setting-${f}`);
         if (el) {
@@ -575,13 +590,12 @@ async function saveSettings(e) {
         btn.innerText = 'جاري الحفظ... ⏳';
 
         const settingsData = {
-            whatsapp: document.getElementById('setting-whatsapp').value,
-            phone: document.getElementById('setting-phone').value,
+            whatsapp: formatPhoneNumber(document.getElementById('setting-whatsapp').value),
+            phone: formatPhoneNumber(document.getElementById('setting-phone').value),
             social_fb: document.getElementById('setting-social_fb').value,
             social_insta: document.getElementById('setting-social_insta').value,
             social_tiktok: document.getElementById('setting-social_tiktok').value,
             address_ar: document.getElementById('setting-address_ar').value,
-            mapLink: document.getElementById('setting-mapLink').value,
             startTime: document.getElementById('setting-startTime').value,
             endTime: document.getElementById('setting-endTime').value,
             updatedAt: new Date().toISOString()

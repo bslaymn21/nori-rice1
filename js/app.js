@@ -44,6 +44,22 @@ const categoryImages = {
     drinks: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=120&q=80"
 };
 
+// --- Egypt Phone Formatting Helper logic ---
+function formatPhoneNumber(phone) {
+    if (!phone) return '';
+    let trimmed = phone.trim();
+    if (trimmed.startsWith('+2')) {
+        return trimmed;
+    }
+    if (trimmed.startsWith('2')) {
+        return '+' + trimmed;
+    }
+    if (trimmed.startsWith('0')) {
+        return '+2' + trimmed;
+    }
+    return '+20' + trimmed;
+}
+
 // --- Cloudinary Quality & Format Auto-Optimization Helper ---
 function optimizeCloudinaryUrl(url, width = 800) {
     if (!url) return '';
@@ -186,6 +202,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- Promo Offer Popup Logic ---
 function displayPromoOffer(offer) {
+    if (!offer) return;
+    if (offer.expiryDate) {
+        const initialDistance = new Date(offer.expiryDate).getTime() - Date.now();
+        if (initialDistance <= 0) return; // Already expired, do not display!
+    }
     const promoModal = document.getElementById('promo-modal');
     if (!promoModal) return;
 
@@ -260,6 +281,7 @@ function displayPromoOffer(offer) {
                     if (btnTextEl) btnTextEl.innerText = 'العرض انتهى';
                     actionBtn.classList.add('bg-slate-500', 'cursor-not-allowed');
                 }
+                closePromoModal(); // Hide the promo modal completely from home page
                 clearInterval(promoTimerInterval);
                 return;
             }
@@ -1173,7 +1195,7 @@ async function handleCustomerFormSubmit(event) {
     const addressInput = document.getElementById('customer-address');
 
     const name = nameInput?.value.trim();
-    const phone = phoneInput?.value.trim();
+    const phone = formatPhoneNumber(phoneInput?.value.trim());
     const address = addressInput?.value.trim();
 
     if (!name || !phone || !address) {
@@ -1667,7 +1689,7 @@ async function submitNewComment(e) {
     const newComment = {
         name: nameInput.value,
         text: textInput.value,
-        phone: phoneInput ? phoneInput.value : '',
+        phone: phoneInput ? formatPhoneNumber(phoneInput.value) : '',
         rating: selectedRating,
         showOnHome: false, // Wait for admin approval
         status: 'pending'
