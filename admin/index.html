@@ -99,24 +99,29 @@
     </div>
 
     <script type="module">
-        import { initAdminAccount, verifyAdmin } from '../database/services.js';
-
-        // Ensure default account exists
-        initAdminAccount();
+        import { verifyAdmin } from '../database/services.js';
 
         const adminBasePath = window.location.pathname.replace(/\/(?:index\.html)?$/, '/');
-        const redirectToDashboard = () => { window.location.href = `${adminBasePath}dashboard.html`; };
+        const redirectToDashboard = () => { window.location.replace(`${adminBasePath}dashboard.html`); };
 
-        // Check if already remembered
-        const rememberedUser = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
-        if (rememberedUser) {
-             redirectToDashboard();
+        // Check for existing session
+        const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
+        if (session) {
+            try {
+                const sessionData = JSON.parse(session);
+                // Allow sessions up to 7 days for convenience on multiple devices
+                if (Date.now() - sessionData.loginTime < 7 * 24 * 60 * 60 * 1000) {
+                    redirectToDashboard();
+                }
+            } catch (e) {
+                localStorage.clear();
+            }
         }
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
             const remember = document.getElementById('remember-me').checked;
             const error = document.getElementById('error-msg');
             const btn = document.getElementById('submit-btn');
@@ -124,15 +129,16 @@
             try {
                 btn.disabled = true;
                 btn.innerHTML = '<span class="animate-spin material-symbols-outlined">sync</span>';
+                error.classList.add('hidden');
                 
                 const adminData = await verifyAdmin(user, pass);
                 
                 if (adminData) {
-                    // Success
                     const sessionData = { 
                         username: adminData.username, 
                         loginTime: Date.now(),
-                        remember: remember
+                        remember: remember,
+                        sessionId: Math.random().toString(36).substring(2, 15) // Unique session for multi-device support
                     };
                     
                     if (remember) {
@@ -143,14 +149,12 @@
 
                     redirectToDashboard();
                 } else {
-                    throw new Error("Invalid credentials");
+                    throw new Error("Invalid");
                 }
             } catch (err) {
-                console.error(err);
                 error.classList.remove('hidden');
                 btn.disabled = false;
                 btn.innerHTML = '<span>دخول النظام</span><span class="material-symbols-outlined text-xl">login</span>';
-                document.getElementById('password').value = '';
             }
         });
     </script>
