@@ -903,35 +903,39 @@
                         </select>
                     </div>
 
+                    <!-- إضافة قسم إدارة الإضافات المميزة -->
                     <div class="space-y-4 md:col-span-2">
-                        <!-- وجبة مميزة -->
-                        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/80">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-amber-500">star</span>
-                                <div class="text-right">
-                                    <p class="text-xs font-black text-slate-800 dark:text-slate-200">وجبة مميزة (Featured)</p>
-                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">تثبيت الوجبة وتظليلها بنجمة ذهبية في المنيو</p>
-                                </div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer select-none">
-                                <input type="checkbox" id="item-featured" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
-                            </label>
+                        <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest pr-2">الإضافات المميزة</h3>
+                        <button type="button" onclick="openAddonModal()" class="w-full py-2.5 bg-primary text-white rounded-xl hover:bg-primary/80 transition-colors font-bold">
+                            إضافة إضافة مميزة جديدة
+                        </button>
+                        <div id="addons-list" class="mt-4 space-y-2">
+                            <!-- سيتم تحميل الإضافات هنا عبر JavaScript -->
                         </div>
-
-                        <!-- إضافة مقترحة -->
-                        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/80">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-emerald-500">shopping_cart</span>
-                                <div class="text-right">
-                                    <p class="text-xs font-black text-slate-800 dark:text-slate-200">إضافة مقترحة بعد إضافة الطبق للسلة (Upsell)</p>
-                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">تظهر للعملاء في نافذة "إضافة مميزة" كعرض مقترح مميز</p>
+                    </div>
+                    <!-- Modal لإضافة/تعديل إضافة مميزة -->
+                    <div id="addon-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-xl w-full max-w-md">
+                            <h2 class="text-lg font-bold mb-4" id="addon-modal-title">إضافة إضافة مميزة</h2>
+                            <form id="addon-form" class="space-y-4" onsubmit="saveAddon(event)">
+                                <input type="hidden" id="addon-id" />
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1">اسم الإضافة (عربي)</label>
+                                    <input type="text" id="addon-name-ar" class="w-full bg-slate-50 dark:bg-slate-800 rounded-xl p-2" required />
                                 </div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer select-none">
-                                <input type="checkbox" id="item-is-upsell" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                            </label>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1">اسم الإضافة (إنجليزي)</label>
+                                    <input type="text" id="addon-name-en" class="w-full bg-slate-50 dark:bg-slate-800 rounded-xl p-2" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 mb-1">السعر (جم)</label>
+                                    <input type="number" id="addon-price" class="w-full bg-slate-50 dark:bg-slate-800 rounded-xl p-2" required />
+                                </div>
+                                <div class="flex justify-end space-x-2">
+                                    <button type="button" onclick="closeAddonModal()" class="px-4 py-2 bg-gray-200 dark:bg-slate-700 rounded">إلغاء</button>
+                                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded">حفظ</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
 
