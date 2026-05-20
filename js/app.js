@@ -191,13 +191,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const defaultMenuMode = window.innerWidth >= 768 ? 'book' : 'grid';
     setMenuMode(defaultMenuMode);
 
-    window.addEventListener('resize', () => {
-        const responsiveMode = window.innerWidth >= 768 ? 'book' : 'grid';
-        if (responsiveMode !== currentMenuMode) {
-            setMenuMode(responsiveMode);
-        }
-    });
-
     // Check Restaurant Working Hours
     checkRestaurantStatus();
 
