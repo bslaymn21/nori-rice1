@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.openCartDrawerFromUpsell = openCartDrawerFromUpsell;
     window.triggerUpsellModal = triggerUpsellModal;
     window.closePromoModal = closePromoModal;
+    window.resetFlipbook = resetFlipbook;
 
     // Load Dynamic Admin Data from Firebase
     try {
@@ -1537,18 +1538,28 @@ function flipbookPrevPage() {
     }
 }
 
+function resetFlipbook() {
+    currentFlipbookPage = 1;
+    updateFlipbook();
+}
+
 function initFlipbookSwipes() {
     const book = document.getElementById('sushi-book');
     if (!book) return;
 
     let startX = 0;
+    let startY = 0;
     book.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
     }, { passive: true });
 
     book.addEventListener('touchend', (e) => {
         const diffX = e.changedTouches[0].clientX - startX;
-        if (Math.abs(diffX) > 50) {
+        const diffY = e.changedTouches[0].clientY - startY;
+        
+        // Ensure horizontal swipe is dominant and exceeds threshold of 75px
+        if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY)) {
             if (diffX < 0) {
                 // Dragging right to left -> Page flips forward
                 flipbookNextPage();
@@ -1915,7 +1926,7 @@ function renderDynamicFlipbook() {
                     <span class="material-symbols-outlined text-6xl text-[#d4a17b] mb-4">menu_book</span>
                     <h3 class="text-3xl font-black text-white font-serif tracking-wide mb-2">${lang === 'ar' ? 'نهاية المنيو' : 'End of Menu'}</h3>
                     <p class="text-sm text-slate-300 mb-8">${lang === 'ar' ? 'شكراً لاختياركم نوري & رايس.' : 'Thank you for choosing Nori & Rice.'}</p>
-                    <button onclick="currentFlipbookPage=1; updateFlipbook();" class="px-6 py-3 rounded-xl bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black text-sm border border-[#0b272a] transition-all">
+                    <button onclick="resetFlipbook()" class="px-6 py-3 rounded-xl bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black text-sm border border-[#0b272a] transition-all">
                         ${lang === 'ar' ? 'العودة للبداية' : 'Back to Start'}
                     </button>
                 </div>
@@ -1969,7 +1980,7 @@ function renderBookItemHtml(item, lang, currency) {
 
     return `
         <div onclick="${buttonAction}" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
-            <div class="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
+            <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
                 <img src="${optimizeCloudinaryUrl(imageSrc, 400)}" class="w-full h-full object-cover" alt="${name}">
             </div>
             <div class="flex-grow flex flex-col justify-between text-start min-w-0">

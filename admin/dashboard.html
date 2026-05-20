@@ -531,8 +531,7 @@
                             </div>
                         </div>
                         <div id="categories-list"
-                            class="flex flex-col flex-wrap gap-2 mt-6 md:mt-8 overflow-x-auto pb-4 no-scrollbar"
-                            style="height: 145px; align-content: flex-start;">
+                            class="flex flex-row gap-2 mt-6 md:mt-8 overflow-x-auto pb-2 w-full whitespace-nowrap scrollbar-thin">
                             <p class="text-xs text-slate-400 italic">جاري تحميل الأقسام...</p>
                         </div>
                     </div>
@@ -556,8 +555,7 @@
                         <!-- شريط الأقسام (سيرش سريع) -->
                         <div class="border-t border-slate-50 dark:border-white/5 pt-6">
                             <div id="admin-menu-filters"
-                                class="flex flex-col flex-wrap gap-2 overflow-x-auto pb-4 no-scrollbar"
-                                style="height: 145px; align-content: flex-start;">
+                                class="flex flex-row gap-2 overflow-x-auto pb-2 w-full whitespace-nowrap scrollbar-thin">
                                 <!-- الكل وباقي الأقسام هتظهر هنا برمجياً -->
                             </div>
                         </div>
@@ -894,31 +892,47 @@
                             class="w-full bg-secondary/10 dark:bg-secondary/20 border-2 border-secondary/20 rounded-xl p-4 text-xl font-black text-secondary focus:ring-2 focus:ring-secondary/20"
                             required>
                     </div>
-                    <div class="space-y-2 md:col-span-2">
+
+                    <div class="space-y-1.5 md:col-span-2">
                         <label
                             class="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2 text-primary">ترتيب
                             الظهور في القائمة</label>
                         <select id="item-order"
-                            class="w-full bg-primary/5 dark:bg-primary/5 border-none rounded-xl p-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                             <option value="">تلقائي (في النهاية)</option>
                         </select>
                     </div>
-                    <div class="space-y-1.5 md:col-span-2 flex flex-wrap items-center gap-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="item-featured" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
-                            <span class="ms-3 text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest pr-2">وجبة مميزة (Featured)</span>
-                        </label>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="item-show-home" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                            <span class="ms-3 text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest pr-2">عرض في الصفحة الرئيسية</span>
-                        </label>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="item-is-upsell" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                            <span class="ms-3 text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest pr-2">إضافة مقترحة للعميل (Upsell)</span>
-                        </label>
+
+                    <div class="space-y-4 md:col-span-2">
+                        <!-- وجبة مميزة -->
+                        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/80">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-amber-500">star</span>
+                                <div class="text-right">
+                                    <p class="text-xs font-black text-slate-800 dark:text-slate-200">وجبة مميزة (Featured)</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">تثبيت الوجبة وتظليلها بنجمة ذهبية في المنيو</p>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" id="item-featured" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                            </label>
+                        </div>
+
+                        <!-- إضافة مقترحة -->
+                        <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/80">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-emerald-500">shopping_cart</span>
+                                <div class="text-right">
+                                    <p class="text-xs font-black text-slate-800 dark:text-slate-200">إضافة مقترحة بعد إضافة الطبق للسلة (Upsell)</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">تظهر للعملاء في نافذة "إضافة مميزة" كعرض مقترح مميز</p>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" id="item-is-upsell" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="space-y-1.5 md:col-span-2">
@@ -1075,21 +1089,7 @@
                             <input type="hidden" id="item-options-types" value="">
                         </div>
                     </div>
-                    <div class="md:col-span-2 pt-2">
-                        <div
-                            class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary">home</span>
-                                <p class="text-xs font-black">العرض بالرئيسية</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="item-show-home" class="sr-only peer">
-                                <div
-                                    class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-secondary">
-                                </div>
-                            </label>
-                        </div>
-                    </div>
+
                 </div>
                 <input type="hidden" id="item-id">
                 <button type="submit"

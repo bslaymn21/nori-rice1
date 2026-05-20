@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.toggleNotifications = toggleNotifications;
     window.updateOrderStatusHandler = updateOrderStatusHandler;
     window.deleteOrderHandler = deleteOrderHandler;
+    window.printOrderInvoice = printOrderInvoice;
     window.toggleFeedbackStatus = toggleFeedbackStatus;
     window.handleCategoryImageSelect = handleCategoryImageSelect;
     window.markAllNotificationsAsRead = markAllNotificationsAsRead;
@@ -293,17 +294,18 @@ function renderMenuGrid() {
                 <img src="${item.images?.[0] || '../asseat/only logo.jpg'}" alt="${item.name_ar}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
                 
-                <div class="absolute top-4 right-4 flex items-center gap-2">
-                    <span class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[#c18c64] dark:text-secondary text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
+                <div class="absolute top-4 right-4 flex flex-wrap items-center gap-1.5 justify-end max-w-[85%]">
+                    <span class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[#c18c64] dark:text-secondary text-[9px] font-black px-2.5 py-1 rounded-xl shadow-md border border-white/10">
                         ${item.category}
                     </span>
                     ${item.featured ? `
-                        <span class="bg-amber-500 text-[#0b272a] text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[14px]">star</span> مميز
+                        <span class="bg-amber-500 text-[#0b272a] text-[9px] font-black px-2 py-1 rounded-xl shadow-md flex items-center gap-0.5">
+                            <span class="material-symbols-outlined text-[12px] font-black">star</span> مميز
                         </span>
-                    ` : item.showOnHome ? `
-                        <span class="bg-primary text-white text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[14px]">home</span> عرض في الرئيسية
+                    ` : ''}
+                    ${item.isUpsell ? `
+                        <span class="bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-xl shadow-md flex items-center gap-0.5">
+                            <span class="material-symbols-outlined text-[12px] font-black">shopping_cart</span> مقترح
                         </span>
                     ` : ''}
                 </div>
@@ -367,13 +369,6 @@ function renderOrders() {
     tbody.innerHTML = orders.map(ord => {
         const dateStr = new Date(ord.createdAt).toLocaleString('ar-EG', { hour: 'numeric', minute: 'numeric', hour12: true });
         const itemsList = ord.items?.map(i => `${i.name || i.name_ar} (x${i.quantity || 1})`).join(' + ') || 'عناصر مجمعة';
-        const statusColors = {
-            pending: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400',
-            processing: 'bg-[#c18c64]/10 text-[#c18c64] border-[#c18c64]/20 dark:bg-primary/10 dark:text-secondary',
-            completed: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400',
-            cancelled: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400'
-        };
-        const statusText = { pending: 'قيد الانتظار', processing: 'جاري التجهيز', completed: 'مكتمل', cancelled: 'ملغي' };
 
         return `
             <!-- Mobile Card View -->
@@ -383,9 +378,6 @@ function renderOrders() {
                         <span class="text-xs font-black px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300">#${ord.id.slice(-6)}</span>
                         <span class="text-[10px] text-slate-400 font-bold">${dateStr}</span>
                     </div>
-                    <span class="text-[11px] font-black px-3 py-1 rounded-xl border ${statusColors[ord.status] || statusColors.pending}">
-                        ${statusText[ord.status] || 'جديد'}
-                    </span>
                 </div>
                 <div>
                     <h4 class="text-sm font-bold text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h4>
@@ -401,12 +393,10 @@ function renderOrders() {
                         <span class="text-base font-black text-[#c18c64] dark:text-secondary">${ord.totalPrice || ord.total || 0} جم</span>
                     </div>
                     <div class="flex gap-2">
-                        <select onchange="updateOrderStatusHandler('${ord.id}', this.value)" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#c18c64]">
-                            <option value="pending" ${ord.status === 'pending' ? 'selected' : ''}>انتظار</option>
-                            <option value="processing" ${ord.status === 'processing' ? 'selected' : ''}>تجهيز</option>
-                            <option value="completed" ${ord.status === 'completed' ? 'selected' : ''}>مكتمل</option>
-                            <option value="cancelled" ${ord.status === 'cancelled' ? 'selected' : ''}>إلغاء</option>
-                        </select>
+                        <button onclick="printOrderInvoice('${ord.id}')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center gap-1 transition-all shadow-sm text-xs font-black">
+                            <span class="material-symbols-outlined text-[16px]">print</span>
+                            <span>طباعة الفاتورة</span>
+                        </button>
                         <button onclick="deleteOrderHandler('${ord.id}')" class="w-9 h-9 bg-rose-50 hover:bg-rose-500 hover:text-white dark:bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">delete</span>
                         </button>
@@ -419,9 +409,6 @@ function renderOrders() {
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300">#${ord.id.slice(-6)}</span>
-                        <span class="text-[11px] font-black px-3 py-1 rounded-xl border ${statusColors[ord.status] || statusColors.pending}">
-                            ${statusText[ord.status] || 'جديد'}
-                        </span>
                     </div>
                     <span class="text-[11px] text-slate-400 font-bold mt-1">${dateStr}</span>
                 </div>
@@ -438,12 +425,10 @@ function renderOrders() {
                     ${ord.totalPrice || ord.total || 0} <span class="text-xs font-bold">جم</span>
                 </div>
                 <div class="flex items-center gap-3 pr-4">
-                    <select onchange="updateOrderStatusHandler('${ord.id}', this.value)" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#c18c64]">
-                        <option value="pending" ${ord.status === 'pending' ? 'selected' : ''}>قيد الانتظار</option>
-                        <option value="processing" ${ord.status === 'processing' ? 'selected' : ''}>جاري التجهيز</option>
-                        <option value="completed" ${ord.status === 'completed' ? 'selected' : ''}>مكتمل</option>
-                        <option value="cancelled" ${ord.status === 'cancelled' ? 'selected' : ''}>ملغي</option>
-                    </select>
+                    <button onclick="printOrderInvoice('${ord.id}')" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center gap-1.5 transition-all shadow-sm text-xs font-black" title="طباعة الفاتورة">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        <span>طباعة الفاتورة</span>
+                    </button>
                     <button onclick="deleteOrderHandler('${ord.id}')" class="w-10 h-10 bg-rose-50 hover:bg-rose-500 hover:text-white dark:bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center transition-all shadow-sm" title="حذف الطلب">
                         <span class="material-symbols-outlined text-[20px]">delete</span>
                     </button>
@@ -863,7 +848,6 @@ function openModal() {
     document.getElementById('item-form').reset();
     document.getElementById('modal-title').innerText = 'إضافة وجبة جديدة';
     document.getElementById('image-previews').innerHTML = '';
-    document.getElementById('item-show-home').checked = true;
     document.getElementById('item-is-upsell').checked = false;
     document.getElementById('item-discount-pct').value = '';
     updateOrderDropdown(document.getElementById('item-category').value);
@@ -924,7 +908,7 @@ async function handleFormSubmit(e) {
             images: finalUrls,
             description_ar: document.getElementById('item-desc-ar').value,
             ingredients_ar: document.getElementById('item-ingredients-ar').value,
-            showOnHome: document.getElementById('item-show-home').checked,
+            showOnHome: true,
             featured: document.getElementById('item-featured').checked,
             isUpsell: document.getElementById('item-is-upsell').checked,
             options: {
@@ -1044,7 +1028,6 @@ function editItem(id) {
 
     document.getElementById('item-desc-ar').value = item.description_ar || '';
     document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
-    document.getElementById('item-show-home').checked = item.showOnHome || false;
     document.getElementById('item-featured').checked = item.featured || false;
     document.getElementById('item-is-upsell').checked = item.isUpsell || false;
     updateOrderDropdown(item.category, item.order);
@@ -1684,3 +1667,194 @@ document.addEventListener('click', (e) => {
         confirmModal.classList.add('hidden');
     }
 });
+
+function printOrderInvoice(orderId) {
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return;
+    
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+        showNotification('فشل فتح نافذة الطباعة! برجاء السماح بالنوافذ المنبثقة (Popups).', 'error');
+        return;
+    }
+
+    const itemsHtml = ord.items?.map(i => {
+        let details = '';
+        if (i.size) details += ` (${i.size})`;
+        if (i.method) details += ` [${i.method}]`;
+        if (i.pieces) details += ` - ${i.pieces} قطع`;
+        return `
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-family: 'Tajawal', sans-serif;">
+                    <span style="font-weight: bold; font-size: 14px;">${i.name || i.name_ar}</span>
+                    <span style="font-size: 11px; color: #666; display: block; margin-top: 2px;">${details}</span>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-family: 'Tajawal', sans-serif; font-size: 14px;">${i.quantity || 1}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: left; font-family: 'Tajawal', sans-serif; font-size: 14px;">${i.price || 0} جم</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: left; font-family: 'Tajawal', sans-serif; font-size: 14px; font-weight: bold;">${(i.price || 0) * (i.quantity || 1)} جم</td>
+            </tr>
+        `;
+    }).join('') || '';
+
+    const invoiceHtml = `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+            <meta charset="UTF-8">
+            <title>فاتورة طلب #${ord.id.slice(-6)}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+                body {
+                    font-family: 'Tajawal', sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 30px;
+                    direction: rtl;
+                    background-color: #fff;
+                }
+                .invoice-box {
+                    max-width: 600px;
+                    margin: auto;
+                    padding: 25px;
+                    border: 1px dashed #cbd5e1;
+                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+                    border-radius: 16px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 25px;
+                    border-bottom: 2px dashed #e2e8f0;
+                    padding-bottom: 20px;
+                }
+                .logo {
+                    max-height: 70px;
+                    margin-bottom: 10px;
+                }
+                .title {
+                    font-size: 22px;
+                    font-weight: 900;
+                    color: #0b272a;
+                    margin: 5px 0;
+                }
+                .subtitle {
+                    font-size: 11px;
+                    color: #64748b;
+                    letter-spacing: 2px;
+                    margin-top: 0;
+                }
+                .info-table {
+                    width: 100%;
+                    margin-bottom: 25px;
+                    font-size: 13px;
+                    line-height: 22px;
+                    border-collapse: collapse;
+                }
+                .info-table td {
+                    padding: 6px 4px;
+                }
+                .items-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    text-align: right;
+                    font-size: 13px;
+                    margin-bottom: 25px;
+                }
+                .items-table th {
+                    background-color: #f8fafc;
+                    padding: 12px 10px;
+                    border-bottom: 2px solid #cbd5e1;
+                    font-weight: 800;
+                    color: #475569;
+                }
+                .total-section {
+                    border-top: 2px dashed #e2e8f0;
+                    padding-top: 15px;
+                    text-align: left;
+                    font-size: 15px;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 35px;
+                    font-size: 11px;
+                    color: #94a3b8;
+                    border-top: 1px solid #e2e8f0;
+                    padding-top: 15px;
+                }
+                @media print {
+                    body { padding: 0; }
+                    .invoice-box { border: none; box-shadow: none; padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="invoice-box">
+                <div class="header">
+                    <img src="../asseat/only logo remove background.png" class="logo" onerror="this.style.display='none'">
+                    <div class="title">نوري & رايس</div>
+                    <div class="subtitle">NORI & RICE</div>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; font-weight: 800; color: #c18c64;">فاتورة طلب رقم #${ord.id.slice(-6)}</p>
+                </div>
+                
+                <table class="info-table">
+                    <tr>
+                        <td style="font-weight: bold; width: 80px; color: #475569;">العميل:</td>
+                        <td style="font-weight: 800; font-size: 14px;">${ord.customerName || 'زبون'}</td>
+                        <td style="font-weight: bold; width: 80px; text-align: left; color: #475569;">التاريخ:</td>
+                        <td style="text-align: left; font-weight: bold;">${new Date(ord.createdAt).toLocaleString('ar-EG')}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #475569;">الهاتف:</td>
+                        <td style="font-weight: bold;">${ord.customerPhone || ord.phone || '-'}</td>
+                        <td style="font-weight: bold; text-align: left; color: #475569;">طريقة الدفع:</td>
+                        <td style="text-align: left; font-weight: bold;">نقداً عند الاستلام</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #475569;">العنوان:</td>
+                        <td colspan="3" style="font-weight: bold;">${ord.customerAddress || ord.address || 'استلام من المطعم'}</td>
+                    </tr>
+                    ${ord.notes ? `
+                    <tr>
+                        <td style="font-weight: bold; color: #d4a17b;">ملاحظات:</td>
+                        <td colspan="3" style="color: #64748b; font-style: italic; font-weight: bold;">${ord.notes}</td>
+                    </tr>
+                    ` : ''}
+                </table>
+
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: right;">المنتج</th>
+                            <th style="text-align: center; width: 60px;">الكمية</th>
+                            <th style="text-align: left; width: 80px;">السعر</th>
+                            <th style="text-align: left; width: 100px;">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+
+                <div class="total-section">
+                    <p style="margin: 6px 0; font-weight: bold; color: #475569;">المجموع الفرعي: <span style="color: #0f172a;">${ord.totalPrice || ord.total || 0} جم</span></p>
+                    <p style="margin: 6px 0; font-size: 18px; color: #c18c64; font-weight: 900;">الإجمالي النهائي: <span>${ord.totalPrice || ord.total || 0} جم</span></p>
+                </div>
+
+                <div class="footer">
+                    <p>شكراً لطلبكم من نوري & رايس! ❤️</p>
+                    <p>www.noriandrice.com</p>
+                </div>
+            </div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.open();
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+}
