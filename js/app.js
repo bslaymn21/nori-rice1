@@ -352,19 +352,25 @@ function checkRestaurantStatus() {
         isRestaurantOpen = (currentTimeInMinutes >= startMinutes || currentTimeInMinutes < endMinutes);
     }
 
-    const notification = document.getElementById('closed-notification');
-    if (notification) {
-        if (!isRestaurantOpen) {
-            notification.classList.remove('hidden');
-        } else {
-            notification.classList.add('hidden');
-        }
-    }
+    updateClosedNotificationVisibility();
 
     // Always allow ordering even if closed (per user request)
     // Re-render menu to update states
     renderMenu();
     renderDynamicFlipbook();
+}
+
+function updateClosedNotificationVisibility() {
+    const notification = document.getElementById('closed-notification');
+    const drawer = document.getElementById('cart-drawer');
+    if (!notification) return;
+
+    const isCartOpen = drawer && drawer.classList.contains('open');
+    if (!isRestaurantOpen && !isCartOpen) {
+        notification.classList.remove('hidden');
+    } else {
+        notification.classList.add('hidden');
+    }
 }
 
 // --- General Event Listeners ---
@@ -1303,6 +1309,11 @@ function toggleCart(forceOpen = false) {
     } else {
         drawer.classList.toggle('open');
         overlay.classList.toggle('active');
+    }
+    
+    // Update closed notification visibility based on cart state
+    if (typeof updateClosedNotificationVisibility === 'function') {
+        updateClosedNotificationVisibility();
     }
 }
 
