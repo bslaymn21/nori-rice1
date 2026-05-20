@@ -117,7 +117,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (settings) {
             globalSettings = settings;
-            if (settings.whatsapp) RESTAURANT_WHATSAPP = settings.whatsapp;
+            if (settings.whatsapp) {
+                RESTAURANT_WHATSAPP = settings.whatsapp;
+                document.querySelectorAll('a[href^="https://wa.me/"]').forEach(el => el.href = `https://wa.me/${settings.whatsapp}`);
+                const contactWhatsapp = document.getElementById('contact-whatsapp');
+                if (contactWhatsapp) contactWhatsapp.innerText = settings.whatsapp;
+            }
             if (settings.phone) {
                 document.querySelectorAll('a[href^="tel:"]').forEach(el => el.href = `tel:${settings.phone}`);
                 const contactPhone = document.getElementById('contact-phone');
@@ -1048,13 +1053,18 @@ function triggerUpsellModal(item) {
     const upsellCategories = ['drinks', 'beverages', 'sauces', 'sides', 'appetizers'];
     const upsellKeywords = ['صوص', 'sauce', 'بيبسي', 'pepsi', 'كولا', 'cola', 'مياه', 'water', 'بطاطس', 'fries', 'سفن', '7up', 'سبرايت', 'sprite', 'رانش', 'ranch', 'مايونيز', 'mayo', 'ثومية'];
 
-    const upsellCandidates = candidates.filter(i => {
-        const cat = (i.category || '').toLowerCase();
-        const nameAr = (i.name_ar || '').toLowerCase();
-        const nameEn = (i.name || '').toLowerCase();
-        
-        return upsellCategories.includes(cat) || upsellKeywords.some(kw => nameAr.includes(kw) || nameEn.includes(kw));
-    });
+    let upsellCandidates = candidates.filter(i => i.isUpsell);
+    
+    // Fallback if no admin-specified upsells exist yet
+    if (upsellCandidates.length === 0) {
+        upsellCandidates = candidates.filter(i => {
+            const cat = (i.category || '').toLowerCase();
+            const nameAr = (i.name_ar || '').toLowerCase();
+            const nameEn = (i.name || '').toLowerCase();
+            
+            return upsellCategories.includes(cat) || upsellKeywords.some(kw => nameAr.includes(kw) || nameEn.includes(kw));
+        });
+    }
 
     const recommendations = upsellCandidates.slice(0, 4);
 

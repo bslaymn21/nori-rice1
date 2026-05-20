@@ -366,7 +366,7 @@ function renderOrders() {
 
     tbody.innerHTML = orders.map(ord => {
         const dateStr = new Date(ord.createdAt).toLocaleString('ar-EG', { hour: 'numeric', minute: 'numeric', hour12: true });
-        const itemsList = ord.items?.map(i => `${i.name_ar} (x${i.quantity || 1})`).join(' + ') || 'عناصر مجمعة';
+        const itemsList = ord.items?.map(i => `${i.name || i.name_ar} (x${i.quantity || 1})`).join(' + ') || 'عناصر مجمعة';
         const statusColors = {
             pending: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400',
             processing: 'bg-[#c18c64]/10 text-[#c18c64] border-[#c18c64]/20 dark:bg-primary/10 dark:text-secondary',
@@ -389,7 +389,7 @@ function renderOrders() {
                 </div>
                 <div>
                     <h4 class="text-sm font-bold text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h4>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${ord.phone || ''} • ${ord.address || 'بدون عنوان'}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${ord.customerPhone || ord.phone || ''} • ${ord.customerAddress || ord.address || 'بدون عنوان'}</p>
                 </div>
                 <div class="p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
                     <p class="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">${itemsList}</p>
@@ -398,7 +398,7 @@ function renderOrders() {
                 <div class="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-white/5">
                     <div>
                         <span class="text-[10px] text-slate-400 font-black block uppercase">الإجمالي</span>
-                        <span class="text-base font-black text-[#c18c64] dark:text-secondary">${ord.total || 0} جم</span>
+                        <span class="text-base font-black text-[#c18c64] dark:text-secondary">${ord.totalPrice || ord.total || 0} جم</span>
                     </div>
                     <div class="flex gap-2">
                         <select onchange="updateOrderStatusHandler('${ord.id}', this.value)" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[#c18c64]">
@@ -427,15 +427,15 @@ function renderOrders() {
                 </div>
                 <div>
                     <h4 class="text-sm font-bold text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h4>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${ord.phone || ''}</p>
-                    <p class="text-[11px] text-slate-400 truncate max-w-[200px]" title="${ord.address || ''}">${ord.address || 'بدون عنوان'}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${ord.customerPhone || ord.phone || ''}</p>
+                    <p class="text-[11px] text-slate-400 truncate max-w-[200px]" title="${ord.customerAddress || ord.address || ''}">${ord.customerAddress || ord.address || 'بدون عنوان'}</p>
                 </div>
                 <div class="pr-4">
                     <p class="text-xs font-bold text-slate-700 dark:text-slate-300 line-clamp-2 leading-relaxed">${itemsList}</p>
                     ${ord.notes ? `<p class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium bg-amber-50 dark:bg-amber-500/10 p-1.5 rounded-lg inline-block">ملاحظة: ${ord.notes}</p>` : ''}
                 </div>
                 <div class="font-black text-lg text-[#c18c64] dark:text-secondary pr-4">
-                    ${ord.total || 0} <span class="text-xs font-bold">جم</span>
+                    ${ord.totalPrice || ord.total || 0} <span class="text-xs font-bold">جم</span>
                 </div>
                 <div class="flex items-center gap-3 pr-4">
                     <select onchange="updateOrderStatusHandler('${ord.id}', this.value)" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#c18c64]">
@@ -864,6 +864,7 @@ function openModal() {
     document.getElementById('modal-title').innerText = 'إضافة وجبة جديدة';
     document.getElementById('image-previews').innerHTML = '';
     document.getElementById('item-show-home').checked = true;
+    document.getElementById('item-is-upsell').checked = false;
     document.getElementById('item-discount-pct').value = '';
     updateOrderDropdown(document.getElementById('item-category').value);
 
@@ -925,6 +926,7 @@ async function handleFormSubmit(e) {
             ingredients_ar: document.getElementById('item-ingredients-ar').value,
             showOnHome: document.getElementById('item-show-home').checked,
             featured: document.getElementById('item-featured').checked,
+            isUpsell: document.getElementById('item-is-upsell').checked,
             options: {
                 sizes: selectedSizes,
                 methods: selectedMethods,
@@ -1044,6 +1046,7 @@ function editItem(id) {
     document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
     document.getElementById('item-show-home').checked = item.showOnHome || false;
     document.getElementById('item-featured').checked = item.featured || false;
+    document.getElementById('item-is-upsell').checked = item.isUpsell || false;
     updateOrderDropdown(item.category, item.order);
 
     if (item.options) {

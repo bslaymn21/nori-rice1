@@ -373,8 +373,29 @@
                             <div class="text-right">
                                 <h4 class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1"
                                     data-i18n="phone_label">رقم الهاتف والطلبات</h4>
-                                <p id="contact-phone" class="text-sm font-black text-white leading-relaxed">
-                                    01012345678</p>
+                                <a href="tel:01012345678" class="text-sm font-black text-white hover:text-primary transition-colors leading-relaxed flex items-center gap-2 group">
+                                    <span id="contact-phone" dir="ltr">01012345678</span>
+                                    <span class="material-symbols-outlined text-[14px] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary">call</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp Block -->
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-green-500 border border-white/10 flex-shrink-0">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                    <path d="M12.031 0C5.405 0 .015 5.39.015 12.016c0 2.12.553 4.192 1.603 6.012L.014 24l6.115-1.604c1.761.96 3.75 1.468 5.897 1.468 6.627 0 12.016-5.39 12.016-12.015C24.042 5.39 18.658 0 12.031 0zm0 21.84c-1.782 0-3.528-.48-5.06-1.385l-.363-.214-3.766.987.997-3.67-.235-.373c-.996-1.583-1.52-3.414-1.52-5.33 0-5.498 4.475-9.973 9.973-9.973 5.497 0 9.973 4.475 9.973 9.973 0 5.498-4.476 9.973-9.973 9.973zm5.474-7.48c-.3-.15-1.776-.877-2.052-.977-.276-.1-.477-.15-.677.15-.2.3-.776.976-.951 1.176-.176.2-.351.226-.651.076-1.63-.82-2.73-1.57-3.784-3.08-.176-.25-.02-.387.131-.537.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5s.05-.375-.025-.525c-.075-.15-.677-1.63-.927-2.23-.243-.586-.489-.507-.677-.517-.175-.008-.376-.008-.576-.008s-.526.075-.801.375c-.276.3-1.052 1.026-1.052 2.502s1.077 2.878 1.227 3.078c.15.2 2.097 3.2 5.08 4.488.71.306 1.265.488 1.696.625.713.226 1.362.193 1.874.117.575-.085 1.776-.726 2.027-1.426.25-.7.25-1.3.176-1.426-.075-.125-.276-.2-.576-.35z"/>
+                                </svg>
+                            </div>
+                            <div class="text-right">
+                                <h4 class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
+                                    واتساب
+                                </h4>
+                                <a href="https://wa.me/201012345678" target="_blank" class="text-sm font-black text-white hover:text-green-400 transition-colors leading-relaxed flex items-center gap-2 group">
+                                    <span id="contact-whatsapp" dir="ltr">+201012345678</span>
+                                    <span class="material-symbols-outlined text-[14px] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-green-400">chat</span>
+                                </a>
                             </div>
                         </div>
 
