@@ -1891,12 +1891,51 @@ function renderDynamicFlipbook() {
                     </div>
                 `;
             } else {
-                backHtml = renderBackCoverHtml(lang);
+                backHtml = `
+                    <div class="page-back flex flex-col justify-between p-6 md:p-8 bg-[#0b272a] border-y-2 border-l-2 border-[#d4a17b]/40 rounded-l-3xl shadow-inner">
+                        <div class="my-auto text-center">
+                            <span class="text-xs text-[#d4a17b] font-black uppercase tracking-wider">${lang === 'ar' ? 'النهاية' : 'THE END'}</span>
+                            <h3 class="text-2xl font-black text-white font-serif mt-4 mb-3">${lang === 'ar' ? 'نهاية المنيو' : 'End of Menu'}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto">
+                                ${lang === 'ar' ? 'اقلب الصفحة للأخيرة.' : 'Flip to the last page.'}
+                            </p>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-[#d4a17b] font-bold border-t border-[#d4a17b]/20 pt-4">
+                            <span>NORI &amp; RICE</span>
+                            <span>PAGE ${pageNum * 2 - 1}</span>
+                        </div>
+                    </div>
+                `;
             }
 
             pageElement.innerHTML = frontHtml + backHtml;
             book.appendChild(pageElement);
         });
+
+        const finalPageNum = menuPages.length + 2;
+        const finalPage = document.createElement('div');
+        finalPage.className = 'book-page';
+        finalPage.id = `book-page-${finalPageNum}`;
+        const finalFrontHtml = `
+            <div class="page-front p-6 md:p-8 bg-[#132f34] border-y-2 border-r-2 border-[#d4a17b]/40 rounded-r-3xl shadow-[8px_8px_0px_0px_#d4a17b] flex flex-col justify-between items-center text-center">
+                <div class="my-auto w-full">
+                    <span class="material-symbols-outlined text-6xl text-[#d4a17b] mb-4">menu_book</span>
+                    <h3 class="text-3xl font-black text-white font-serif tracking-wide mb-2">${lang === 'ar' ? 'نهاية المنيو' : 'End of Menu'}</h3>
+                    <p class="text-sm text-slate-300 mb-8">${lang === 'ar' ? 'شكراً لاختياركم نوري & رايس.' : 'Thank you for choosing Nori & Rice.'}</p>
+                    <button onclick="currentFlipbookPage=1; updateFlipbook();" class="px-6 py-3 rounded-xl bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black text-sm border border-[#0b272a] transition-all">
+                        ${lang === 'ar' ? 'العودة للبداية' : 'Back to Start'}
+                    </button>
+                </div>
+                <div class="w-full flex justify-between items-center text-[10px] text-[#d4a17b] font-bold border-t border-[#d4a17b]/20 pt-4">
+                    <span>NORI &amp; RICE</span>
+                    <span>PAGE ${finalPageNum * 2 - 2}</span>
+                </div>
+            </div>
+        `;
+        const finalBackHtml = renderBackCoverHtml(lang);
+        finalPage.innerHTML = finalFrontHtml + finalBackHtml;
+        book.appendChild(finalPage);
+
     } else {
         const pageElement = document.createElement('div');
         pageElement.className = 'book-page';
