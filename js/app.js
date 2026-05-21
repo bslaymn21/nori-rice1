@@ -572,10 +572,11 @@ function renderMenu() {
             `;
         }
 
+        const isAvailable = item.isAvailable !== false;
         const buttonText = item.options ? translations[lang].btn_customize : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
         const buttonIcon = item.options ? 'tune' : 'visibility';
-        const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const buttonAction = `openCustomizer('${safeItemId}')`;
+        const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/\"/g, '&quot;');
+        const buttonAction = isAvailable ? `openCustomizer('${safeItemId}')` : `() => showToast('${currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable'}', true)`;
 
         // Check for featured badge
         const featuredBadge = item.featured ? `
@@ -592,6 +593,11 @@ function renderMenu() {
                 <!-- Thumbnail (No Dark Overlay for Vivid Food Display) -->
                 <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="${buttonAction}">
                     ${featuredBadge}
+                    ${!isAvailable ? `
+                        <div class="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
+                            <div class="text-white font-black text-xl">غير متوفر</div>
+                        </div>
+                    ` : ''}
                     <img src="${optimizeCloudinaryUrl(item.images[0], 600)}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
                     
                     <!-- Floating Price Tag (Top Left) -->
@@ -620,7 +626,7 @@ function renderMenu() {
                     </div>
                     
                     <!-- Full Width Prominent Button (Matching two.html) -->
-                    <button onclick="event.stopPropagation(); ${buttonAction}" class="mt-auto w-full bg-primary text-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black py-4 border-2 border-[#0b272a] transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
+                    <button onclick="event.stopPropagation(); ${buttonAction}" ${!isAvailable ? 'disabled' : ''} class="mt-auto w-full ${!isAvailable ? 'bg-slate-600/50 text-slate-300 cursor-not-allowed' : 'bg-primary text-[#0b272a]'} shadow-[4px_4px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 font-black py-4 border-2 border-[#0b272a] transition-all uppercase rounded-2xl flex items-center justify-center gap-2 text-base">
                         <span class="material-symbols-outlined font-black text-lg">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>
@@ -636,6 +642,11 @@ function renderMenu() {
 function addToOrderSimple(itemId) {
     const item = currentMenuItems.find(i => i.id === itemId) || (typeof sushiMenu !== 'undefined' ? sushiMenu.find(i => i.id === itemId) : null);
     if (!item) return;
+
+    if (item.isAvailable === false) {
+        showToast(currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable', true);
+        return;
+    }
 
     const cartItem = {
         cartId: Date.now().toString(),
@@ -673,6 +684,11 @@ function addToOrderSimple(itemId) {
 function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     const item = currentMenuItems.find(i => i.id === itemId) || (typeof sushiMenu !== 'undefined' ? sushiMenu.find(i => i.id === itemId) : null);
     if (!item) return;
+
+    if (item.isAvailable === false) {
+        showToast(currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable', true);
+        return;
+    }
 
     // Record current scroll position of the customizer content if it's an update
     let currentScroll = 0;
