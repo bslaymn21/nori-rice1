@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.deleteItem = deleteItem;
     window.deleteOffer = handleDeleteOffer;
     window.toggleAvailability = toggleAvailability;
+    window.handleAddCategory = handleAddCategory;
+    window.handleDeleteCategory = handleDeleteCategory;
     window.handleImageSelection = handleImageSelection;
     window.removeImage = removeImage;
     window.calculateDiscountPrice = calculateDiscountPrice;
@@ -56,6 +58,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.toggleOrderDropdown = toggleOrderDropdown;
     window.reorderCategory = reorderCategory;
     window.filterMenuItemsByCategory = filterMenuItemsByCategory;
+window.openAddonModal = openAddonModal;
+window.closeAddonModal = closeAddonModal;
+window.saveAddon = saveAddon;
     window.saveSettings = saveSettings;
     window.downloadQRCode = downloadQRCode;
     window.logout = logout;
@@ -848,8 +853,15 @@ function openModal() {
     document.getElementById('item-form').reset();
     document.getElementById('modal-title').innerText = 'إضافة وجبة جديدة';
     document.getElementById('image-previews').innerHTML = '';
-    document.getElementById('item-is-upsell').checked = false;
+    const isUpsellEl = document.getElementById('item-is-upsell');
+    if (isUpsellEl) isUpsellEl.checked = false;
+    const featuredEl = document.getElementById('item-featured');
+    if (featuredEl) featuredEl.checked = false;
     document.getElementById('item-discount-pct').value = '';
+    const hasDiscountEl = document.getElementById('item-has-discount');
+    if (hasDiscountEl) hasDiscountEl.checked = false;
+    const discountFieldsEl = document.getElementById('discount-fields');
+    if (discountFieldsEl) discountFieldsEl.classList.add('hidden');
     updateOrderDropdown(document.getElementById('item-category').value);
 
     document.querySelectorAll('.custom-variant-label').forEach(el => el.remove());
@@ -869,10 +881,71 @@ function openModal() {
 }
 function closeModal() { document.getElementById('item-modal').classList.add('hidden'); }
 
+// Addon modal functions
+function openAddonModal(addon = null) {
+    // Reset form fields safely
+    const addonForm = document.getElementById('addon-form');
+    if (addonForm) addonForm.reset();
+    document.getElementById('addon-id').value = '';
+    document.getElementById('addon-modal-title').innerText = addon ? 'تعديل إضافة مميزة' : 'إضافة إضافة مميزة';
+    if (addon) {
+        document.getElementById('addon-id').value = addon.id || '';
+        document.getElementById('addon-name-ar').value = addon.nameAr || '';
+        document.getElementById('addon-name-en').value = addon.nameEn || '';
+        document.getElementById('addon-price').value = addon.price || '';
+    }
+    document.getElementById('addon-modal').classList.remove('hidden');
+}
+function closeAddonModal() {
+    document.getElementById('addon-modal').classList.add('hidden');
+}
+function saveAddon(e) {
+    e.preventDefault();
+    const id = document.getElementById('addon-id').value;
+    const nameAr = document.getElementById('addon-name-ar').value;
+    const nameEn = document.getElementById('addon-name-en').value;
+    const price = document.getElementById('addon-price').value;
+    // Simple UI update: add item to list
+    const list = document.getElementById('addons-list');
+    if (list) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex justify-between items-center p-2 border-b border-gray-200';
+        itemDiv.innerHTML = `<span>${nameAr || nameEn}</span><span>${price} جم</span>`;
+        list.appendChild(itemDiv);
+    }
+    console.log('Saving addon', { id, nameAr, nameEn, price });
+    closeAddonModal();
+    // TODO: persist to backend / local storage
+}
+
+
+
 async function handleFormSubmit(e) {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerText;
+
+    // Validation
+    const nameAr = document.getElementById('item-name-ar').value.trim();
+    const category = document.getElementById('item-category').value;
+    const price = document.getElementById('item-price').value;
+    
+    if (!nameAr) {
+        showNotification('يرجى إدخال اسم الوجبة بالعربي', 'error');
+        return;
+    }
+    if (!category) {
+        showNotification('يرجى اختيار القسم', 'error');
+        return;
+    }
+    if (!price) {
+        showNotification('يرجى إدخال السعر', 'error');
+        return;
+    }
+    if (existingUrls.length === 0 && selectedFiles.length === 0) {
+        showNotification('يرجى إضافة صورة واحدة على الأقل للوجبة', 'error');
+        return;
+    }
 
     try {
         submitBtn.disabled = true;
@@ -904,17 +977,17 @@ async function handleFormSubmit(e) {
             name: document.getElementById('item-name-en').value,
             category: document.getElementById('item-category').value,
             price: parseFloat(document.getElementById('item-price').value),
-            oldPrice: document.getElementById('item-old-price').value ? parseFloat(document.getElementById('item-old-price').value) : null,
+            oldPrice: document.getElementById('item-has-discount')?.checked && document.getElementById('item-old-price').value ? parseFloat(document.getElementById('item-old-price').value) : null,
             images: finalUrls,
             description_ar: document.getElementById('item-desc-ar').value,
             ingredients_ar: document.getElementById('item-ingredients-ar').value,
             showOnHome: true,
-            featured: document.getElementById('item-featured').checked,
-            isUpsell: document.getElementById('item-is-upsell').checked,
+            featured: document.getElementById('item-featured')?.checked || false,
+            isUpsell: document.getElementById('item-is-upsell')?.checked || false,
             options: {
                 sizes: selectedSizes,
                 methods: selectedMethods,
-                types: document.getElementById('item-options-types').value.split(',').map(s => s.trim()).filter(s => s)
+                types: (document.getElementById('item-options-types')?.value || '').split(',').map(s => s.trim()).filter(s => s)
             },
             order: parseInt(document.getElementById('item-order').value) || 999,
             updatedAt: new Date().toISOString()
@@ -959,8 +1032,11 @@ async function handleFormSubmit(e) {
 
 function handleImageSelection(event) {
     const files = Array.from(event.target.files);
-    selectedFiles = [...selectedFiles, ...files];
-    updatePreviews();
+    if (files.length > 0) {
+        selectedFiles = [files[0]]; // Only keep the newest selected file
+        existingUrls = []; // Clear any previously saved image
+        updatePreviews();
+    }
 }
 
 function removeImage(index, isExisting = false) {
@@ -1019,17 +1095,25 @@ function editItem(id) {
     document.getElementById('item-price').value = item.price || 0;
     document.getElementById('item-old-price').value = item.oldPrice || '';
 
+    const hasDiscountEl = document.getElementById('item-has-discount');
+    const discountFieldsEl = document.getElementById('discount-fields');
     if (item.oldPrice && item.price && item.oldPrice > item.price) {
         const pct = Math.round(((item.oldPrice - item.price) / item.oldPrice) * 100);
         document.getElementById('item-discount-pct').value = pct;
+        if (hasDiscountEl) hasDiscountEl.checked = true;
+        if (discountFieldsEl) discountFieldsEl.classList.remove('hidden');
     } else {
         document.getElementById('item-discount-pct').value = '';
+        if (hasDiscountEl) hasDiscountEl.checked = false;
+        if (discountFieldsEl) discountFieldsEl.classList.add('hidden');
     }
 
     document.getElementById('item-desc-ar').value = item.description_ar || '';
     document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
-    document.getElementById('item-featured').checked = item.featured || false;
-    document.getElementById('item-is-upsell').checked = item.isUpsell || false;
+    const featuredEl = document.getElementById('item-featured');
+    if (featuredEl) featuredEl.checked = item.featured || false;
+    const isUpsellEl = document.getElementById('item-is-upsell');
+    if (isUpsellEl) isUpsellEl.checked = item.isUpsell || false;
     updateOrderDropdown(item.category, item.order);
 
     if (item.options) {

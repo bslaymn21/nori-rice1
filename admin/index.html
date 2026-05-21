@@ -16,13 +16,16 @@
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         .login-glass {
-            background: rgba(19, 47, 52, 0.75); /* Using #132f34 with opacity! */
+            background: rgba(19, 47, 52, 0.75);
+            /* Using #132f34 with opacity! */
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(232, 213, 192, 0.08); /* Brand gold-tinted border! */
+            border: 1px solid rgba(232, 213, 192, 0.08);
+            /* Brand gold-tinted border! */
         }
 
         .glow-button {
-            box-shadow: 0 0 20px rgba(212, 161, 123, 0.3); /* Gold glow shadow */
+            box-shadow: 0 0 20px rgba(212, 161, 123, 0.3);
+            /* Gold glow shadow */
         }
     </style>
 </head>
@@ -41,37 +44,46 @@
     <div class="w-full max-w-md relative z-10">
         <div class="login-glass rounded-[40px] overflow-hidden shadow-2xl p-8 md:p-12 text-center">
             <div class="mb-10">
-                <img src="../asseat/only logo remove background.png" alt="Nori & Rice Logo" class="h-32 w-auto mx-auto mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                <img src="../asseat/only logo remove background.png" alt="Nori & Rice Logo"
+                    class="h-32 w-auto mx-auto mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                 <h1 class="text-white text-3xl font-black tracking-widest font-h1 uppercase mb-2">NORI & RICE</h1>
                 <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.4em]">ADMINISTRATION SYSTEM</p>
             </div>
 
             <form id="login-form" class="space-y-6 text-right" dir="rtl">
                 <div class="space-y-2 text-right">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">اسم المستخدم</label>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">اسم
+                        المستخدم</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">person</span>
-                        <input type="text" id="username" required placeholder="admin" autocapitalize="none" autocorrect="off" autocomplete="username"
+                        <span
+                            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">person</span>
+                        <input type="text" id="username" required placeholder="admin" autocapitalize="none"
+                            autocorrect="off" autocomplete="username"
                             class="w-full pr-12 pl-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-secondary focus:ring-0 transition-all text-white outline-none font-bold">
                     </div>
                 </div>
 
                 <div class="space-y-2 text-right">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">كلمة المرور</label>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">كلمة
+                        المرور</label>
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">vpn_key</span>
+                        <span
+                            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl">vpn_key</span>
                         <input type="password" id="password" required placeholder="••••••••"
                             class="w-full pr-12 pl-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-secondary focus:ring-0 transition-all text-white outline-none">
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3 px-2">
-                    <input type="checkbox" id="remember-me" class="w-5 h-5 rounded-lg bg-white/5 border-white/10 text-secondary focus:ring-secondary cursor-pointer">
-                    <label for="remember-me" class="text-xs font-bold text-slate-400 cursor-pointer select-none">حفظ الدخول على هذا الهاتف</label>
+                    <input type="checkbox" id="remember-me"
+                        class="w-5 h-5 rounded-lg bg-white/5 border-white/10 text-secondary focus:ring-secondary cursor-pointer">
+                    <label for="remember-me" class="text-xs font-bold text-slate-400 cursor-pointer select-none">حفظ
+                        الدخول على هذا الهاتف</label>
                 </div>
 
                 <div id="error-msg" class="hidden animate-shake">
-                    <div class="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold p-4 rounded-xl flex items-center gap-3">
+                    <div
+                        class="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold p-4 rounded-xl flex items-center gap-3">
                         <span class="material-symbols-outlined text-sm">error</span>
                         بيانات الدخول غير صحيحة. حاول مرة أخرى.
                     </div>
@@ -130,17 +142,17 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="animate-spin material-symbols-outlined">sync</span>';
                 error.classList.add('hidden');
-                
+
                 const adminData = await verifyAdmin(user, pass);
-                
+
                 if (adminData) {
-                    const sessionData = { 
-                        username: adminData.username, 
+                    const sessionData = {
+                        username: adminData.username,
                         loginTime: Date.now(),
                         remember: remember,
                         sessionId: Math.random().toString(36).substring(2, 15) // Unique session for multi-device support
                     };
-                    
+
                     if (remember) {
                         localStorage.setItem('admin_session', JSON.stringify(sessionData));
                     } else {

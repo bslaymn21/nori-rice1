@@ -692,6 +692,18 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     // Dynamic ingredients from Admin (ingredients_ar)
     const ingredientText = lang === 'ar' ? (item.ingredients_ar || item.ingredients) : (item.ingredients_en || item.ingredients);
 
+    let typesHtml = '';
+    if (item.options?.types?.length) {
+        typesHtml = `
+            <div class="mb-4">
+                <span class="text-primary font-bold text-xs">${lang === 'ar' ? 'أصناف مع الوجبة / إضافات' : 'Comes with / Additions'}:</span>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    ${item.options.types.map(t => `<span class="bg-[#d4a17b]/10 text-[#d4a17b] px-3 py-1 rounded-full text-xs font-bold border border-[#d4a17b]/20">${t}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     // 1. Piece options selector
     let piecesHtml = '';
     if (item.options?.pieces) {
@@ -758,14 +770,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     }
 
     let addonsHtml = '';
-    const addonOptions = item.options?.addons?.length ? item.options.addons : [
-        { key: 'creamcheese', label: translations[lang].addon_creamcheese, price: 20 },
-        { key: 'avocado', label: translations[lang].addon_avocado, price: 15 },
-        { key: 'tempura', label: translations[lang].addon_tempura, price: 10 },
-        { key: 'spicymayo', label: translations[lang].addon_spicymayo, price: 10 },
-        { key: 'caviar', label: translations[lang].addon_caviar, price: 40 }
-    ];
-
+    const addonOptions = item.options?.addons?.length ? item.options.addons : [];
     if (addonOptions.length) {
         addonsHtml = `
             <div class="mb-6">
@@ -854,8 +859,9 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
                      
                      <h2 class="text-2xl md:text-3xl font-bold text-primary mb-2">${name}</h2>
                      <p class="text-sm text-slate-300 mb-4 leading-relaxed">${desc}</p>
-                     ${ingredientText ? `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${ingredientText}</p>` : `<p class="text-xs text-slate-400 mb-8 border-b border-white/5 pb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${lang === 'ar' ? 'سوشي ممتاز محضر بعناية ومكونات طازجة.' : 'Premium sushi crafted with care and fresh ingredients.'}</p>`}
-
+                     ${ingredientText ? `<p class="text-xs text-slate-400 mb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${ingredientText}</p>` : `<p class="text-xs text-slate-400 mb-4"><span class="text-primary font-bold">${lang === 'ar' ? 'المكونات' : 'Ingredients'}:</span> ${lang === 'ar' ? 'سوشي ممتاز محضر بعناية ومكونات طازجة.' : 'Premium sushi crafted with care and fresh ingredients.'}</p>`}
+                     ${typesHtml}
+                     <div class="border-b border-white/5 mb-8"></div>
                      <div class="space-y-6">
                         ${piecesHtml}
                         ${sizesHtml}
@@ -972,8 +978,6 @@ function updateCustomizerPrice() {
             const addonPrice = typeof addon === 'object' ? addon.price : null;
             if (addonPrice != null) addonPrices[addonKey] = addonPrice;
         });
-    } else {
-        Object.assign(addonPrices, { creamcheese: 20, avocado: 15, tempura: 10, spicymayo: 10, caviar: 40 });
     }
     customizationChoices.addons.forEach(ad => {
         addonsSurcharge += (addonPrices[ad] || 0);
