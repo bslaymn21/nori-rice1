@@ -71,6 +71,7 @@ window.saveAddon = saveAddon;
     window.toggleFeedbackStatus = toggleFeedbackStatus;
     window.handleCategoryImageSelect = handleCategoryImageSelect;
     window.markAllNotificationsAsRead = markAllNotificationsAsRead;
+    window.viewOrderDetails = viewOrderDetails;
 
     document.getElementById('item-form').addEventListener('submit', handleFormSubmit);
     document.getElementById('offer-form').addEventListener('submit', handleOfferFormSubmit);
@@ -372,17 +373,18 @@ function renderOrders() {
     }
 
     tbody.innerHTML = orders.map(ord => {
-        const dateStr = new Date(ord.createdAt).toLocaleString('ar-EG', { hour: 'numeric', minute: 'numeric', hour12: true });
+        const dateStr = new Date(ord.createdAt).toLocaleString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
         const itemsList = ord.items?.map(i => `${i.name || i.name_ar} (x${i.quantity || 1})`).join(' + ') || 'عناصر مجمعة';
 
         return `
             <!-- Mobile Card View -->
-            <div class="md:hidden p-6 border-b border-slate-100 dark:border-white/5 space-y-4 bg-white dark:bg-slate-900/50">
+            <div class="md:hidden p-6 border-b border-slate-100 dark:border-white/5 space-y-4 bg-white dark:bg-slate-900/50 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" onclick="viewOrderDetails('${ord.id}')">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300">#${ord.id.slice(-6)}</span>
                         <span class="text-[10px] text-slate-400 font-bold">${dateStr}</span>
                     </div>
+                    <span class="material-symbols-outlined text-slate-400">chevron_left</span>
                 </div>
                 <div>
                     <h4 class="text-sm font-bold text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h4>
@@ -397,10 +399,9 @@ function renderOrders() {
                         <span class="text-[10px] text-slate-400 font-black block uppercase">الإجمالي</span>
                         <span class="text-base font-black text-[#c18c64] dark:text-secondary">${ord.totalPrice || ord.total || 0} جم</span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2" onclick="event.stopPropagation()">
                         <button onclick="printOrderInvoice('${ord.id}')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center gap-1 transition-all shadow-sm text-xs font-black">
                             <span class="material-symbols-outlined text-[16px]">print</span>
-                            <span>طباعة الفاتورة</span>
                         </button>
                         <button onclick="deleteOrderHandler('${ord.id}')" class="w-9 h-9 bg-rose-50 hover:bg-rose-500 hover:text-white dark:bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -410,7 +411,7 @@ function renderOrders() {
             </div>
 
             <!-- Desktop Row View -->
-            <div class="hidden md:grid grid-cols-5 items-center px-10 py-6 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors bg-white dark:bg-slate-900/50">
+            <div class="hidden md:grid grid-cols-5 items-center px-10 py-6 hover:bg-[#c18c64]/5 dark:hover:bg-[#c18c64]/5 transition-colors bg-white dark:bg-slate-900/50 cursor-pointer group" onclick="viewOrderDetails('${ord.id}')">
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black px-2.5 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300">#${ord.id.slice(-6)}</span>
@@ -418,7 +419,7 @@ function renderOrders() {
                     <span class="text-[11px] text-slate-400 font-bold mt-1">${dateStr}</span>
                 </div>
                 <div>
-                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h4>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#c18c64] transition-colors">${ord.customerName || 'زبون'}</h4>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${ord.customerPhone || ord.phone || ''}</p>
                     <p class="text-[11px] text-slate-400 truncate max-w-[200px]" title="${ord.customerAddress || ord.address || ''}">${ord.customerAddress || ord.address || 'بدون عنوان'}</p>
                 </div>
@@ -429,10 +430,13 @@ function renderOrders() {
                 <div class="font-black text-lg text-[#c18c64] dark:text-secondary pr-4">
                     ${ord.totalPrice || ord.total || 0} <span class="text-xs font-bold">جم</span>
                 </div>
-                <div class="flex items-center gap-3 pr-4">
-                    <button onclick="printOrderInvoice('${ord.id}')" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center gap-1.5 transition-all shadow-sm text-xs font-black" title="طباعة الفاتورة">
-                        <span class="material-symbols-outlined text-[18px]">print</span>
-                        <span>طباعة الفاتورة</span>
+                <div class="flex items-center gap-3 pr-4" onclick="event.stopPropagation()">
+                    <button onclick="viewOrderDetails('${ord.id}')" class="px-4 py-2.5 bg-[#c18c64]/10 hover:bg-[#c18c64] hover:text-white text-[#c18c64] rounded-xl flex items-center gap-1.5 transition-all shadow-sm text-xs font-black" title="تفاصيل العميل">
+                        <span class="material-symbols-outlined text-[18px]">person_search</span>
+                        <span>تفاصيل</span>
+                    </button>
+                    <button onclick="printOrderInvoice('${ord.id}')" class="w-10 h-10 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center transition-all shadow-sm" title="طباعة الفاتورة">
+                        <span class="material-symbols-outlined text-[20px]">print</span>
                     </button>
                     <button onclick="deleteOrderHandler('${ord.id}')" class="w-10 h-10 bg-rose-50 hover:bg-rose-500 hover:text-white dark:bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center transition-all shadow-sm" title="حذف الطلب">
                         <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -441,6 +445,129 @@ function renderOrders() {
             </div>
         `;
     }).join('');
+}
+
+async function viewOrderDetails(orderId) {
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    // Get customer previous orders
+    const customerPhone = ord.customerPhone || ord.phone || '';
+    const customerOrders = orders.filter(o => (o.customerPhone || o.phone) === customerPhone);
+    const totalSpent = customerOrders.reduce((sum, o) => sum + (o.totalPrice || o.total || 0), 0);
+
+    const itemsHtml = ord.items?.map(i => {
+        let details = [];
+        if (i.customizations?.size) details.push(`الحجم: ${i.customizations.size}`);
+        if (i.customizations?.method) details.push(`الطريقة: ${i.customizations.method}`);
+        if (i.customizations?.pieces) details.push(`${i.customizations.pieces} قطع`);
+        if (i.customizations?.addons?.length) details.push(`إضافات: ${i.customizations.addons.join(', ')}`);
+        return `
+            <div class="flex justify-between items-start py-3 border-b border-slate-100 dark:border-white/5 last:border-0">
+                <div>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">${i.name || i.name_ar}</p>
+                    ${details.length ? `<p class="text-[11px] text-slate-400 mt-0.5">${details.join(' | ')}</p>` : ''}
+                </div>
+                <div class="text-left">
+                    <span class="text-xs font-bold text-slate-500">x${i.quantity || 1}</span>
+                    <p class="text-sm font-black text-[#c18c64]">${(i.price || 0) * (i.quantity || 1)} جم</p>
+                </div>
+            </div>
+        `;
+    }).join('') || '<p class="text-slate-400 text-sm">لا يوجد تفاصيل</p>';
+
+    const prevOrdersHtml = customerOrders.length > 1 ? customerOrders
+        .filter(o => o.id !== orderId)
+        .slice(0, 5)
+        .map(o => {
+            const d = new Date(o.createdAt).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+            const items = o.items?.map(i => i.name || i.name_ar).join(', ') || '';
+            return `
+                <div class="flex justify-between items-center py-2.5 border-b border-slate-100 dark:border-white/5 last:border-0">
+                    <div>
+                        <p class="text-xs font-bold text-slate-600 dark:text-slate-300">${d}</p>
+                        <p class="text-[11px] text-slate-400 truncate max-w-[200px]">${items}</p>
+                    </div>
+                    <span class="text-xs font-black text-[#c18c64]">${o.totalPrice || o.total || 0} جم</span>
+                </div>
+            `;
+        }).join('') : '<p class="text-[11px] text-slate-400 py-2">أول طلب لهذا العميل</p>';
+
+    const modal = document.createElement('div');
+    modal.id = 'order-details-modal';
+    modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10 rounded-t-3xl">
+                <div>
+                    <h2 class="text-lg font-black text-slate-900 dark:text-white">تفاصيل الطلب #${ord.id.slice(-6)}</h2>
+                    <p class="text-xs text-slate-400 font-bold mt-0.5">${new Date(ord.createdAt).toLocaleString('ar-EG')}</p>
+                </div>
+                <button onclick="document.getElementById('order-details-modal').remove()" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-red-50 hover:text-red-500 rounded-xl flex items-center justify-center transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Customer Info -->
+            <div class="p-6 border-b border-slate-100 dark:border-white/5">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">بيانات العميل</p>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-[#c18c64]/10 rounded-2xl flex items-center justify-center">
+                        <span class="text-xl font-black text-[#c18c64]">${(ord.customerName || 'Z').charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-black text-slate-900 dark:text-white">${ord.customerName || 'زبون'}</h3>
+                        <p class="text-xs text-slate-500 font-bold mt-0.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">phone</span>
+                            ${customerPhone || 'رقم غير متوفر'}
+                        </p>
+                        <p class="text-xs text-slate-500 font-bold mt-0.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">location_on</span>
+                            ${ord.customerAddress || ord.address || 'بدون عنوان'}
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <div class="bg-[#c18c64]/5 rounded-2xl p-3 text-center">
+                        <p class="text-xl font-black text-[#c18c64]">${customerOrders.length}</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">إجمالي الطلبات</p>
+                    </div>
+                    <div class="bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-3 text-center">
+                        <p class="text-xl font-black text-emerald-600">${totalSpent} جم</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">إجمالي الإنفاق</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="p-6 border-b border-slate-100 dark:border-white/5">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">تفاصيل هذا الطلب</p>
+                ${itemsHtml}
+                <div class="flex justify-between items-center pt-3 mt-1">
+                    <span class="text-sm font-black text-slate-600 dark:text-slate-300">المجموع الكلي</span>
+                    <span class="text-xl font-black text-[#c18c64]">${ord.totalPrice || ord.total || 0} جم</span>
+                </div>
+                ${ord.notes ? `<div class="mt-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3 rounded-xl"><p class="text-xs text-amber-700 dark:text-amber-400 font-bold">📝 ملاحظة: ${ord.notes}</p></div>` : ''}
+            </div>
+
+            <!-- Previous Orders -->
+            <div class="p-6">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">الطلبات السابقة لنفس العميل</p>
+                ${prevOrdersHtml}
+            </div>
+
+            <div class="p-4 border-t border-slate-100 dark:border-white/5 flex gap-3">
+                <button onclick="printOrderInvoice('${ord.id}'); document.getElementById('order-details-modal').remove()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white rounded-2xl font-black text-sm hover:bg-emerald-600 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">print</span> طباعة الفاتورة
+                </button>
+                <button onclick="deleteOrderHandler('${ord.id}'); document.getElementById('order-details-modal').remove()" class="px-4 py-3 bg-rose-50 hover:bg-rose-500 hover:text-white dark:bg-rose-500/10 text-rose-500 rounded-2xl font-black text-sm transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
 }
 
 async function updateOrderStatusHandler(orderId, newStatus) {
@@ -1594,7 +1721,8 @@ async function toggleAvailability(id, status) {
         }
     } catch (e) {
         showNotification('فشل تحديث الحالة', 'error');
-        refreshData();
+        // Revert the checkbox on failure
+        renderMenuGrid();
     }
 }
 

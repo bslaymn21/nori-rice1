@@ -4,7 +4,8 @@
 
 import {
     getMenuItems, getCategories, getGlobalSettings, getActiveOffers,
-    getAllFeedback, saveFeedback, saveOrder, getCustomerByPhone, saveCustomer, trackVisitor
+    getAllFeedback, saveFeedback, saveOrder, getCustomerByPhone, saveCustomer,
+    trackVisitor, trackQRScan, trackWhatsAppOrder
 } from '../database/services.js';
 
 // --- Global Variables & App State ---
@@ -167,7 +168,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             displayPromoOffer(offers[0]);
         }
 
-        trackVisitor();
+        // Track visitor once per day per browser (not every page load)
+        const today = new Date().toISOString().split('T')[0];
+        const lastVisitDay = sessionStorage.getItem('nori_visit_day');
+        if (lastVisitDay !== today) {
+            sessionStorage.setItem('nori_visit_day', today);
+            trackVisitor();
+        }
+
+        // Track QR scan if user came via QR code
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('ref') === 'qr') {
+            const qrTrackedToday = sessionStorage.getItem('nori_qr_day');
+            if (qrTrackedToday !== today) {
+                sessionStorage.setItem('nori_qr_day', today);
+                trackQRScan();
+            }
+        }
     } catch(e) {
         console.error("Error loading dynamic admin data:", e);
     }
@@ -1273,6 +1290,7 @@ async function submitCartWithCustomer(customer) {
 
     const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, '_blank');
+    trackWhatsAppOrder(); // Track WhatsApp conversion
 
     try {
         await saveOrder({

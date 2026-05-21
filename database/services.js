@@ -220,12 +220,13 @@ export async function getTodayVisitors() {
  */
 export async function trackWhatsAppOrder() {
     try {
-        const docRef = doc(db, "stats", "conversions");
+        const today = new Date().toISOString().split('T')[0];
+        const docRef = doc(db, "stats", "whatsapp_" + today);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             await updateDoc(docRef, { whatsappSent: (docSnap.data().whatsappSent || 0) + 1 });
         } else {
-            await setDoc(docRef, { whatsappSent: 1 });
+            await setDoc(docRef, { whatsappSent: 1, date: today });
         }
     } catch (error) {
         console.error("Error tracking WhatsApp order: ", error);
@@ -237,7 +238,8 @@ export async function trackWhatsAppOrder() {
  */
 export async function getWhatsAppConversions() {
     try {
-        const docRef = doc(db, "stats", "conversions");
+        const today = new Date().toISOString().split('T')[0];
+        const docRef = doc(db, "stats", "whatsapp_" + today);
         const docSnap = await getDoc(docRef);
         return docSnap.exists() ? docSnap.data().whatsappSent : 0;
     } catch (error) {
