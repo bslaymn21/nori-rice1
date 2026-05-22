@@ -1075,26 +1075,32 @@ function triggerUpsellModal(item) {
     const lang = currentLanguage;
     const currency = translations[lang].price_currency;
 
-    // Filter drink & sauce recommendations
+    // Get all items and filter for upsell items only
     const allItems = [...(currentMenuItems || []), ...(sushiMenu || [])];
     const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
     const cartItemIds = new Set(cart.map(i => i.id));
-    const candidates = uniqueItems.filter(i => !cartItemIds.has(i.id));
-
-    const upsellCategories = ['drinks', 'beverages', 'sauces', 'sides', 'appetizers'];
-    const upsellKeywords = ['صوص', 'sauce', 'بيبسي', 'pepsi', 'كولا', 'cola', 'مياه', 'water', 'بطاطس', 'fries', 'سفن', '7up', 'سبرايت', 'sprite', 'رانش', 'ranch', 'مايونيز', 'mayo', 'ثومية'];
-
-    let upsellCandidates = candidates.filter(i => i.isUpsell);
     
-    // Fallback if no admin-specified upsells exist yet
+    // Step 1: Look for items marked as isUpsell = true in admin panel
+    let upsellCandidates = uniqueItems.filter(i => i.isUpsell && !cartItemIds.has(i.id));
+    
+    // Step 2: If no admin-specified upsells, fall back to smart suggestions (drinks, sauces, sides)
     if (upsellCandidates.length === 0) {
-        upsellCandidates = candidates.filter(i => {
+        const upsellCategories = ['drinks', 'beverages', 'sauces', 'sides', 'appetizers'];
+        const upsellKeywords = ['صوص', 'sauce', 'بيبسي', 'pepsi', 'كولا', 'cola', 'مياه', 'water', 'بطاطس', 'fries', 'سفن', '7up', 'سبرايت', 'sprite', 'رانش', 'ranch', 'مايونيز', 'mayo', 'ثومية'];
+        
+        upsellCandidates = uniqueItems.filter(i => {
+            if (cartItemIds.has(i.id)) return false;
             const cat = (i.category || '').toLowerCase();
             const nameAr = (i.name_ar || '').toLowerCase();
             const nameEn = (i.name || '').toLowerCase();
-            
             return upsellCategories.includes(cat) || upsellKeywords.some(kw => nameAr.includes(kw) || nameEn.includes(kw));
         });
+    }
+
+    // If still no recommendations, show cart drawer directly
+    if (upsellCandidates.length === 0) {
+        toggleCart(true);
+        return;
     }
 
     const recommendations = upsellCandidates.slice(0, 4);
@@ -1598,12 +1604,27 @@ function initFlipbookSwipes() {
         
         // Ensure horizontal swipe is dominant and exceeds threshold of 75px
         if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY)) {
-            if (diffX < 0) {
-                // Dragging right to left -> Page flips forward
-                flipbookNextPage();
+            // In RTL (Arabic), swipe directions are reversed
+            const isRTL = document.documentElement.dir === 'rtl';
+            
+            if (isRTL) {
+                // RTL MODE: Right swipe (positive diffX) goes to next page, Left swipe (negative diffX) goes to previous
+                if (diffX > 0) {
+                    // Dragging left to right -> Page flips forward in RTL
+                    flipbookNextPage();
+                } else {
+                    // Dragging right to left -> Page flips backward in RTL
+                    flipbookPrevPage();
+                }
             } else {
-                // Dragging left to right -> Page flips backward
-                flipbookPrevPage();
+                // LTR MODE: Left swipe (negative diffX) goes to next page, Right swipe (positive diffX) goes to previous
+                if (diffX < 0) {
+                    // Dragging right to left -> Page flips forward in LTR
+                    flipbookNextPage();
+                } else {
+                    // Dragging left to right -> Page flips backward in LTR
+                    flipbookPrevPage();
+                }
             }
         }
     }, { passive: true });
