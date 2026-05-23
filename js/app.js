@@ -1215,10 +1215,21 @@ function openCustomerModal() {
     const addressInput = document.getElementById('customer-address');
     const note = document.getElementById('customer-note');
 
+    const mapsLinkInput = document.getElementById('customer-maps-link');
+    const latInput = document.getElementById('customer-latitude');
+    const lngInput = document.getElementById('customer-longitude');
+    const accInput = document.getElementById('customer-location-accuracy');
+    const placeInput = document.getElementById('customer-place-name');
+
     if (currentCustomer) {
         if (nameInput) nameInput.value = currentCustomer.name || '';
         if (phoneInput) phoneInput.value = currentCustomer.phone || '';
         if (addressInput) addressInput.value = currentCustomer.address || '';
+        if (mapsLinkInput) mapsLinkInput.value = currentCustomer.mapsLink || '';
+        if (latInput) latInput.value = currentCustomer.latitude ?? '';
+        if (lngInput) lngInput.value = currentCustomer.longitude ?? '';
+        if (accInput) accInput.value = currentCustomer.accuracy ?? '';
+        if (placeInput) placeInput.value = currentCustomer.placeName || '';
         if (note) {
             note.innerText = `تم تسجيل بياناتك سابقًا. اضغط تأكيد لإرسال الطلب بنفس العنوان أو غيّر البيانات.`;
         }
@@ -1226,6 +1237,11 @@ function openCustomerModal() {
         if (nameInput) nameInput.value = '';
         if (phoneInput) phoneInput.value = '';
         if (addressInput) addressInput.value = '';
+        if (mapsLinkInput) mapsLinkInput.value = '';
+        if (latInput) latInput.value = '';
+        if (lngInput) lngInput.value = '';
+        if (accInput) accInput.value = '';
+        if (placeInput) placeInput.value = '';
         if (note) {
             note.innerText = 'يرجى كتابة الاسم ورقم الهاتف والعنوان بالكامل قبل إرسال الطلب.';
         }
@@ -1269,7 +1285,7 @@ async function handleCustomerFormSubmit(event) {
         // --- Collect customer data including location information ---
         const customerData = { name, phone, address };
 
-        // --- Add location data if available ---
+        // --- Location: in-memory state or hidden form fields ---
         const locationData = getLocationData();
         if (locationData.isDetected) {
             customerData.latitude = locationData.latitude;
@@ -1278,6 +1294,18 @@ async function handleCustomerFormSubmit(event) {
             customerData.placeName = locationData.placeName;
             customerData.mapsLink = locationData.mapsLink;
             customerData.locationDetectedAt = locationData.timestamp;
+        } else {
+            const mapsLinkEl = document.getElementById('customer-maps-link');
+            const latEl = document.getElementById('customer-latitude');
+            const lngEl = document.getElementById('customer-longitude');
+            const accEl = document.getElementById('customer-location-accuracy');
+            const placeEl = document.getElementById('customer-place-name');
+
+            if (mapsLinkEl?.value?.trim()) customerData.mapsLink = mapsLinkEl.value.trim();
+            if (latEl?.value) customerData.latitude = parseFloat(latEl.value);
+            if (lngEl?.value) customerData.longitude = parseFloat(lngEl.value);
+            if (accEl?.value) customerData.accuracy = parseFloat(accEl.value);
+            if (placeEl?.value?.trim()) customerData.placeName = placeEl.value.trim();
         }
 
         const customerId = await saveCustomer(customerData);
@@ -1293,6 +1321,14 @@ async function handleCustomerFormSubmit(event) {
     }
 }
 
+function resolveCustomerMapsLink(customer) {
+    if (customer.mapsLink) return customer.mapsLink;
+    if (customer.latitude != null && customer.longitude != null) {
+        return `https://maps.google.com/?q=${customer.latitude},${customer.longitude}`;
+    }
+    return null;
+}
+
 async function submitCartWithCustomer(customer) {
     if (!customer || !customer.phone || !customer.address) {
         openCustomerModal();
@@ -1302,22 +1338,27 @@ async function submitCartWithCustomer(customer) {
     const lang = currentLanguage;
     const currency = translations[lang].price_currency;
     const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
-
-    const locationLine = customer.mapsLink || customer.placeName || '-';
+    const mapsLink = resolveCustomerMapsLink(customer);
 
     let msg = `Nori&Rice\n\n`;
     msg += `البيانات\n`;
-    msg += `______________\n`;
+    msg += `──────────────\n`;
     msg += `الاسم : ${customer.name}\n`;
     msg += `رقم التواصل : ${customer.phone}\n`;
     msg += `العنوان : ${customer.address}\n`;
-    msg += `اللوكيشن : ${locationLine}\n`;
-    msg += `-----------------------\n`;
-    msg += `تفاصيل الاوردر\n\n`;
+    if (mapsLink) {
+        msg += `اللوكيشن :\n${mapsLink}\n`;
+    }
+    msg += `\n-----------------------\n`;
+    msg += `تفاصيل الاوردر\n`;
+    msg += `-----------------------\n\n`;
 
     cart.forEach((item, index) => {
-        msg += `${index + 1}. ${item.name} (الكمية: ${item.quantity})\n`;
-        msg += `السعر: ${item.price} ${currency}\n`;
+        const lineTotal = item.price * item.quantity;
+        msg += `${index + 1}) ${item.name}\n`;
+        msg += `   الكمية : ${item.quantity}\n`;
+        msg += `   السعر : ${item.price} ${currency}\n`;
+        msg += `   الإجمالي : ${lineTotal} ${currency}\n`;
 
         if (item.customizations) {
             const cust = item.customizations;
@@ -1327,19 +1368,18 @@ async function submitCartWithCustomer(customer) {
             if (cust.method) details.push(`النوع: ${cust.method}`);
 
             if (details.length > 0) {
-                msg += `التخصيص: ${details.join(' | ')}\n`;
+                msg += `   التخصيص : ${details.join(' | ')}\n`;
             }
 
             if (cust.addons && cust.addons.length > 0) {
-                msg += `الإضافات: ${cust.addons.join(' + ')}\n`;
+                msg += `   الإضافات : ${cust.addons.join(' + ')}\n`;
             }
         }
         msg += `\n`;
     });
 
     msg += `-----------------------\n`;
-    msg += `المجموع الكلي: ${totalPrice} ${currency}\n\n`;
-    msg += `شكراً لاختياركم Nori&Rice. طلبكم عندنا في أولوية التحضير، ونتمنى لكم تجربة تستحق التكرار. نتشرف بخدمتكم دائماً.`;
+    msg += `المجموع الكلي : ${totalPrice} ${currency}`;
 
     const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, '_blank');
