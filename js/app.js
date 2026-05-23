@@ -1303,41 +1303,43 @@ async function submitCartWithCustomer(customer) {
     const currency = translations[lang].price_currency;
     const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    let msg = `🍣 *طلب وجبات سوشي جديدة - نوري & رايس* 🍣\n\n`;
-    msg += `👤 الاسم: ${customer.name}\n`;
-    msg += `📱 الهاتف: ${customer.phone}\n`;
-    msg += `📍 العنوان: ${customer.address}\n`;
+    const locationLine = customer.mapsLink || customer.placeName || '-';
 
-    // --- Add location with Maps link if available ---
-    if (customer.mapsLink) {
-        msg += `🗺️ موقع العميل: ${customer.mapsLink}\n`;
-    }
-
-    msg += `\n`;
+    let msg = `Nori&Rice\n\n`;
+    msg += `البيانات\n`;
+    msg += `______________\n`;
+    msg += `الاسم : ${customer.name}\n`;
+    msg += `رقم التواصل : ${customer.phone}\n`;
+    msg += `العنوان : ${customer.address}\n`;
+    msg += `اللوكيشن : ${locationLine}\n`;
+    msg += `-----------------------\n`;
+    msg += `تفاصيل الاوردر\n\n`;
 
     cart.forEach((item, index) => {
-        msg += `*${index + 1}. ${item.name}* (الكمية: ${item.quantity})\n`;
-        msg += `• السعر: ${item.price} ${currency}\n`;
+        msg += `${index + 1}. ${item.name} (الكمية: ${item.quantity})\n`;
+        msg += `السعر: ${item.price} ${currency}\n`;
 
         if (item.customizations) {
             const cust = item.customizations;
-            let details = [];
+            const details = [];
             if (cust.pieces) details.push(`${cust.pieces} قطع`);
             if (cust.size) details.push(`الحجم: ${cust.size}`);
             if (cust.method) details.push(`النوع: ${cust.method}`);
 
-            msg += `• التخصيص: ${details.join(' | ')}\n`;
+            if (details.length > 0) {
+                msg += `التخصيص: ${details.join(' | ')}\n`;
+            }
 
             if (cust.addons && cust.addons.length > 0) {
-                msg += `• الإضافات: ${cust.addons.join(' + ')}\n`;
+                msg += `الإضافات: ${cust.addons.join(' + ')}\n`;
             }
         }
         msg += `\n`;
     });
 
-    msg += `------------------------------------\n`;
-    msg += `💰 *المجموع الكلي للطلب:* *${totalPrice} ${currency}*\n\n`;
-    msg += `يرجى البدء في تحضير الطلب فوراً وتأكيد الاستلام. شكراً لكم! 🍣✨`;
+    msg += `-----------------------\n`;
+    msg += `المجموع الكلي: ${totalPrice} ${currency}\n\n`;
+    msg += `شكراً لاختياركم Nori&Rice. طلبكم عندنا في أولوية التحضير، ونتمنى لكم تجربة تستحق التكرار. نتشرف بخدمتكم دائماً.`;
 
     const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, '_blank');
@@ -1373,7 +1375,7 @@ async function submitCartWithCustomer(customer) {
     saveCart();
     updateCartUI();
     toggleCart(false);
-    showToast(lang === 'ar' ? 'تم إرسال طلب السوشي الخاص بك بنجاح! 🍣🚀' : 'Your sushi order was sent successfully! 🍣🚀');
+    showToast(lang === 'ar' ? 'تم إرسال طلبك بنجاح عبر واتساب.' : 'Your order was sent successfully via WhatsApp.');
 }
 
 async function sendCartOrderWhatsApp() {
