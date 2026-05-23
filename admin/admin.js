@@ -25,6 +25,10 @@ let existingOfferUrl = null;
 
 let selectedCategoryFile = null;
 
+const UPSELL_MAX_ITEMS = 6;
+let upsellSelectedIds = [];
+let upsellEnabled = true;
+
 // Session Check
 document.addEventListener('DOMContentLoaded', async () => {
     const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
@@ -62,6 +66,11 @@ window.openAddonModal = openAddonModal;
 window.closeAddonModal = closeAddonModal;
 window.saveAddon = saveAddon;
     window.saveSettings = saveSettings;
+    window.saveUpsellSettings = saveUpsellSettings;
+    window.renderUpsellManager = renderUpsellManager;
+    window.refreshUpsellMenuList = refreshUpsellMenuList;
+    window.toggleUpsellItem = toggleUpsellItem;
+    window.moveUpsellItem = moveUpsellItem;
     window.downloadQRCode = downloadQRCode;
     window.logout = logout;
     window.toggleNotifications = toggleNotifications;
@@ -75,6 +84,22 @@ window.saveAddon = saveAddon;
 
     document.getElementById('item-form').addEventListener('submit', handleFormSubmit);
     document.getElementById('offer-form').addEventListener('submit', handleOfferFormSubmit);
+
+    const upsellSearch = document.getElementById('upsell-search');
+    if (upsellSearch) {
+        upsellSearch.addEventListener('input', () => renderUpsellManager());
+    }
+
+    const upsellGrid = document.getElementById('upsell-items-grid');
+    if (upsellGrid && !upsellGrid.dataset.bound) {
+        upsellGrid.dataset.bound = 'true';
+        upsellGrid.addEventListener('click', (e) => {
+            const row = e.target.closest('[data-upsell-pick]');
+            if (!row) return;
+            const itemId = row.getAttribute('data-upsell-pick');
+            if (itemId) toggleUpsellItem(itemId);
+        });
+    }
 
     // Initial Load
     await refreshData();
@@ -181,7 +206,20 @@ async function refreshData() {
         renderOrders();
         renderFeedback();
         updateNotifications();
-        if (settings) populateSettingsForm(settings);
+        if (settings) {
+            populateSettingsForm(settings);
+            upsellEnabled = settings.upsellEnabled !== false;
+            upsellSelectedIds = Array.isArray(settings.upsellItemIds) ? [...settings.upsellItemIds] : [];
+            if (upsellSelectedIds.length === 0) {
+                upsellSelectedIds = currentData.filter(i => i.isUpsell).map(i => getMenuItemDocId(i)).filter(Boolean);
+            }
+            window.noriUpsellIds = upsellSelectedIds;
+        }
+
+        const upsellTab = document.getElementById('content-upsell');
+        if (upsellTab && !upsellTab.classList.contains('hidden')) {
+            openUpsellTab();
+        }
 
         // Generate QR Code
         generateQRCode();
@@ -216,7 +254,7 @@ function showNotification(msg, type = 'success') {
  * --- TABS & NAVIGATION ---
  */
 function switchTab(tabId) {
-    const tabs = ['dashboard', 'orders', 'menu', 'offers', 'qrcode', 'settings'];
+    const tabs = ['dashboard', 'orders', 'menu', 'offers', 'upsell', 'qrcode', 'settings'];
     tabs.forEach(t => {
         const content = document.getElementById(`content-${t}`);
         const btn = document.getElementById(`tab-${t}`);
@@ -243,13 +281,199 @@ function switchTab(tabId) {
             dashboard: 'لوحة التحكم',
             orders: 'إدارة الطلبات',
             menu: 'إدارة المنيو',
+            offers: 'إدارة العروض',
+            upsell: 'إضافات مقترحة',
             qrcode: 'كود QR',
             settings: 'إعدادات النظام'
         };
         titleEl.innerText = titles[tabId] || 'لوحة التحكم';
     }
 
+    if (tabId === 'upsell') {
+        openUpsellTab();
+    }
+
     if (window.innerWidth < 1024) toggleSidebar(true);
+}
+
+function escapeAdminHtml(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function getMenuItemDocId(item) {
+    return item?.id || item?.internalId || null;
+}
+
+function findMenuItemByDocId(itemId) {
+    return currentData.find(i => getMenuItemDocId(i) === itemId);
+}
+
+/**
+ * --- UPSELL MANAGER (customer popup after add to cart) ---
+ */
+async function ensureUpsellMenuLoaded() {
+    if (currentData && currentData.length > 0) return currentData;
+    try {
+        const items = await getMenuItems();
+        currentData = items || [];
+        return currentData;
+    } catch (e) {
+        console.error('Failed to load menu for upsell:', e);
+        return [];
+    }
+}
+
+async function refreshUpsellMenuList() {
+    try {
+        currentData = await getMenuItems() || [];
+        renderUpsellManager();
+        showNotification(`تم تحميل ${currentData.length} وجبة من المنيو`);
+    } catch (e) {
+        console.error(e);
+        showNotification('تعذر تحميل المنيو', 'error');
+    }
+}
+
+async function openUpsellTab() {
+    const grid = document.getElementById('upsell-items-grid');
+    if (grid) {
+        grid.innerHTML = '<p class="col-span-full text-center text-slate-400 font-bold py-16">جاري تحميل الأطباق...</p>';
+    }
+    await ensureUpsellMenuLoaded();
+    renderUpsellManager();
+}
+
+function renderUpsellManager() {
+    const grid = document.getElementById('upsell-items-grid');
+    const preview = document.getElementById('upsell-selected-preview');
+    const countEl = document.getElementById('upsell-selected-count');
+    const availableEl = document.getElementById('upsell-available-count');
+    const enabledEl = document.getElementById('upsell-enabled');
+    const searchEl = document.getElementById('upsell-search');
+
+    if (!grid || !preview) return;
+
+    if (enabledEl) enabledEl.checked = upsellEnabled;
+
+    const query = (searchEl?.value || '').trim().toLowerCase();
+    const allItems = (currentData || []).filter(item => getMenuItemDocId(item));
+
+    const items = allItems.filter(item => {
+        if (!query) return true;
+        const ar = (item.name_ar || item.name || '').toLowerCase();
+        const en = (item.name_en || item.name || '').toLowerCase();
+        return ar.includes(query) || en.includes(query);
+    });
+
+    if (countEl) countEl.textContent = upsellSelectedIds.length;
+    if (availableEl) availableEl.textContent = allItems.length;
+
+    preview.innerHTML = upsellSelectedIds.length === 0
+        ? `<p class="col-span-full text-center text-xs text-slate-400 font-bold py-6">لم تختر أي وجبة بعد — اضغط على الأطباق بالأسفل</p>`
+        : upsellSelectedIds.map((id, index) => {
+            const item = findMenuItemByDocId(id);
+            if (!item) return '';
+            const name = escapeAdminHtml(item.name_ar || item.name || '—');
+            const img = escapeAdminHtml(item.images?.[0] || '../asseat/only logo remove background.png');
+            const safeId = escapeAdminHtml(id);
+            return `
+                <div class="relative rounded-2xl overflow-hidden border-2 border-primary/40 bg-white dark:bg-slate-800 shadow-md">
+                    <img src="${img}" class="w-full h-20 object-cover" alt="">
+                    <div class="p-2">
+                        <p class="text-[10px] font-black line-clamp-2 leading-tight">${name}</p>
+                        <div class="flex justify-between mt-2 gap-1">
+                            <button type="button" onclick="moveUpsellItem('${safeId}', -1)" class="flex-1 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-xs font-black" ${index === 0 ? 'disabled opacity-40' : ''}>↑</button>
+                            <button type="button" onclick="moveUpsellItem('${safeId}', 1)" class="flex-1 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-xs font-black" ${index === upsellSelectedIds.length - 1 ? 'disabled opacity-40' : ''}>↓</button>
+                            <button type="button" onclick="toggleUpsellItem('${safeId}')" class="px-2 py-1 rounded-lg bg-rose-500 text-white text-xs font-black">×</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    if (allItems.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-16 px-4">
+                <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">restaurant_menu</span>
+                <p class="text-slate-500 font-bold mb-4">لا توجد وجبات في المنيو بعد</p>
+                <button type="button" onclick="switchTab('menu'); openModal();" class="btn-primary px-6 py-3 rounded-xl text-sm">إضافة وجبة للمنيو</button>
+            </div>
+        `;
+        return;
+    }
+
+    if (items.length === 0) {
+        grid.innerHTML = '<p class="col-span-full text-center text-slate-400 font-bold py-12">لا توجد نتائج لهذا البحث</p>';
+        return;
+    }
+
+    grid.innerHTML = items.map(item => {
+        const docId = getMenuItemDocId(item);
+        const selected = upsellSelectedIds.includes(docId);
+        const name = escapeAdminHtml(item.name_ar || item.name || '—');
+        const img = escapeAdminHtml(item.images?.[0] || '../asseat/only logo remove background.png');
+        const category = escapeAdminHtml(item.category || '');
+        const disabled = !selected && upsellSelectedIds.length >= UPSELL_MAX_ITEMS;
+        return `
+            <div role="button" tabindex="0" data-upsell-pick="${escapeAdminHtml(docId)}"
+                class="text-right p-4 rounded-2xl border-2 transition-all flex gap-3 items-center cursor-pointer select-none ${selected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-slate-200 dark:border-white/10 hover:border-primary/40 bg-white dark:bg-slate-800'} ${disabled ? 'opacity-40 pointer-events-none' : ''}">
+                <img src="${img}" class="w-16 h-16 rounded-xl object-cover shrink-0 bg-slate-100" alt="" loading="lazy">
+                <div class="flex-grow min-w-0">
+                    <p class="font-black text-sm leading-tight">${name}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${item.price || 0} جم · ${category}</p>
+                </div>
+                <span class="material-symbols-outlined text-2xl shrink-0 ${selected ? 'text-primary' : 'text-slate-300'}">${selected ? 'check_circle' : 'add_circle'}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleUpsellItem(itemId) {
+    const idx = upsellSelectedIds.indexOf(itemId);
+    if (idx >= 0) {
+        upsellSelectedIds.splice(idx, 1);
+    } else {
+        if (upsellSelectedIds.length >= UPSELL_MAX_ITEMS) {
+            showNotification(`الحد الأقصى ${UPSELL_MAX_ITEMS} أصناف في نافذة الإضافات`, 'error');
+            return;
+        }
+        upsellSelectedIds.push(itemId);
+    }
+    renderUpsellManager();
+}
+
+function moveUpsellItem(itemId, direction) {
+    const idx = upsellSelectedIds.indexOf(itemId);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= upsellSelectedIds.length) return;
+    const [removed] = upsellSelectedIds.splice(idx, 1);
+    upsellSelectedIds.splice(newIdx, 0, removed);
+    renderUpsellManager();
+}
+
+async function saveUpsellSettings() {
+    const enabledEl = document.getElementById('upsell-enabled');
+    upsellEnabled = enabledEl ? enabledEl.checked : true;
+
+    try {
+        await updateGlobalSettings({
+            upsellEnabled,
+            upsellItemIds: [...upsellSelectedIds],
+            updatedAt: new Date().toISOString()
+        });
+
+        window.noriUpsellIds = [...upsellSelectedIds];
+        showNotification('تم حفظ الإضافات المقترحة بنجاح');
+        renderMenuGrid();
+    } catch (e) {
+        console.error(e);
+        showNotification('فشل الحفظ', 'error');
+    }
 }
 
 function toggleSidebar(forceClose = false) {
@@ -309,9 +533,9 @@ function renderMenuGrid() {
                             <span class="material-symbols-outlined text-[12px] font-black">star</span> مميز
                         </span>
                     ` : ''}
-                    ${item.isUpsell ? `
+                    ${(window.noriUpsellIds || []).includes(item.id) ? `
                         <span class="bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-xl shadow-md flex items-center gap-0.5">
-                            <span class="material-symbols-outlined text-[12px] font-black">shopping_cart</span> مقترح
+                            <span class="material-symbols-outlined text-[12px] font-black">shopping_cart</span> إضافة مقترحة
                         </span>
                     ` : ''}
                 </div>
@@ -988,8 +1212,6 @@ function openModal() {
     document.getElementById('item-form').reset();
     document.getElementById('modal-title').innerText = 'إضافة وجبة جديدة';
     document.getElementById('image-previews').innerHTML = '';
-    const isUpsellEl = document.getElementById('item-is-upsell');
-    if (isUpsellEl) isUpsellEl.checked = false;
     const featuredEl = document.getElementById('item-featured');
     if (featuredEl) featuredEl.checked = false;
     document.getElementById('item-discount-pct').value = '';
@@ -1119,7 +1341,6 @@ async function handleFormSubmit(e) {
             ingredients_ar: document.getElementById('item-ingredients-ar').value,
             showOnHome: true,
             featured: document.getElementById('item-featured')?.checked || false,
-            isUpsell: document.getElementById('item-is-upsell')?.checked || false,
             options: {
                 sizes: selectedSizes,
                 methods: selectedMethods,
@@ -1248,8 +1469,6 @@ function editItem(id) {
     document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
     const featuredEl = document.getElementById('item-featured');
     if (featuredEl) featuredEl.checked = item.featured || false;
-    const isUpsellEl = document.getElementById('item-is-upsell');
-    if (isUpsellEl) isUpsellEl.checked = item.isUpsell || false;
     updateOrderDropdown(item.category, item.order);
 
     if (item.options) {

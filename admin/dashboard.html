@@ -285,6 +285,12 @@
                     <span class="font-bold text-sm">إدارة العروض</span>
                 </button>
 
+                <button onclick="switchTab('upsell')" id="tab-upsell"
+                    class="sidebar-item w-full flex items-center gap-3.5 px-5 py-3 rounded-xl transition-all group">
+                    <span class="material-symbols-outlined text-[22px]">add_shopping_cart</span>
+                    <span class="font-bold text-sm">إضافات مقترحة</span>
+                </button>
+
                 <button onclick="switchTab('qrcode')" id="tab-qrcode"
                     class="sidebar-item w-full hidden lg:flex items-center gap-3.5 px-5 py-3 rounded-xl transition-all group">
                     <span class="material-symbols-outlined text-[22px]">qr_code_2</span>
@@ -588,6 +594,60 @@
                     </div>
                 </div>
 
+                <!-- Upsell / Cross-sell Manager -->
+                <div id="content-upsell" class="hidden animate-in space-y-6">
+                    <div class="premium-card p-6 md:p-8 ring-1 ring-slate-100 dark:ring-white/5">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h2 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white">إضافات مقترحة للسلة</h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-xl leading-relaxed">
+                                    اختر الأطباق التي تظهر للعميل في نافذة «إضافة مميزة» بعد ما يضيف وجبة للسلة.
+                                    لن يظهر أي طعام تلقائياً — فقط ما تختاره أنت هنا (حتى 6 أصناف).
+                                </p>
+                            </div>
+                            <label class="flex items-center gap-3 cursor-pointer select-none shrink-0">
+                                <input type="checkbox" id="upsell-enabled" class="peer sr-only" checked>
+                                <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer relative peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full"></div>
+                                <span class="text-sm font-black text-slate-700 dark:text-slate-200">تفعيل النافذة</span>
+                            </label>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3 mb-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20">
+                            <span class="material-symbols-outlined text-amber-600">info</span>
+                            <p class="text-xs font-bold text-amber-800 dark:text-amber-200 flex-1">
+                                المختار: <span id="upsell-selected-count">0</span> / 6
+                                <span class="mx-2 opacity-40">|</span>
+                                متاح للاختيار: <span id="upsell-available-count">0</span> وجبة
+                            </p>
+                            <button type="button" onclick="refreshUpsellMenuList()"
+                                class="text-xs font-black px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-200/60 hover:border-primary transition-colors">
+                                تحديث القائمة
+                            </button>
+                        </div>
+
+                        <div id="upsell-selected-preview" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 min-h-[80px]"></div>
+
+                        <div class="mb-4">
+                            <input type="search" id="upsell-search" placeholder="بحث باسم الوجبة..."
+                                class="w-full max-w-md bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/30">
+                        </div>
+
+                        <p class="text-sm font-black text-slate-700 dark:text-slate-200 mb-3">اختر من المنيو:</p>
+                        <div id="upsell-items-grid"
+                            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[280px] max-h-[min(65vh,720px)] overflow-y-auto pr-1 pb-4 border border-slate-100 dark:border-white/10 rounded-2xl p-3 bg-slate-50/50 dark:bg-slate-900/30">
+                            <p class="col-span-full text-center text-slate-400 font-bold py-16">جاري تحميل الأطباق...</p>
+                        </div>
+
+                        <div class="pt-8 flex justify-end">
+                            <button type="button" onclick="saveUpsellSettings()"
+                                class="btn-primary px-12 py-4 rounded-2xl text-base shadow-2xl flex items-center gap-2">
+                                <span class="material-symbols-outlined">save</span>
+                                حفظ الإضافات المقترحة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Settings Tab -->
                 <div id="content-settings" class="hidden animate-in scroll-mt-20">
                     <div class="max-w-4xl mx-auto space-y-10">
@@ -792,6 +852,11 @@
             <span class="material-symbols-outlined text-2xl">campaign</span>
             <span class="text-[9px] font-bold uppercase">العروض</span>
         </button>
+        <button onclick="switchTab('upsell')" id="mobile-tab-upsell"
+            class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-all active:scale-90">
+            <span class="material-symbols-outlined text-2xl">add_shopping_cart</span>
+            <span class="text-[9px] font-bold uppercase">إضافات</span>
+        </button>
         <button onclick="switchTab('settings')" id="mobile-tab-settings"
             class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-all active:scale-90">
             <span class="material-symbols-outlined text-2xl">settings</span>
@@ -897,14 +962,10 @@
                             </span>
                         </label>
                         
-                        <label class="flex items-center cursor-pointer gap-3 select-none w-max">
-                            <input type="checkbox" id="item-is-upsell" class="peer sr-only">
-                            <div class="w-10 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500 relative"></div>
-                            <span class="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
-                                <span class="material-symbols-outlined text-rose-500 text-lg">add_shopping_cart</span>
-                                إضافة مميزة! 🍣 (تظهر للعميل بعد إضافته للسلة)
-                            </span>
-                        </label>
+                        <p class="text-[10px] font-bold text-rose-600/80 dark:text-rose-400 md:col-span-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+                            لإظهار وجبة في نافذة «إضافة مميزة» بعد السلة، اخترها من تبويب <button type="button" onclick="closeModal(); switchTab('upsell');" class="underline text-primary">إضافات مقترحة</button>
+                        </p>
                     </div>
 
                     <div class="space-y-1.5 md:col-span-2">

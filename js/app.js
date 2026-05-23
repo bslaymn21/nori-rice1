@@ -743,10 +743,10 @@ function addToOrderSimple(itemId) {
     const isDrinkOrSauce = ['drinks', 'beverages', 'sauces'].includes(category) || 
                           ['صوص', 'sauce', 'بيبسي', 'pepsi', 'كولا', 'cola', 'مياه', 'water', 'سفن', '7up', 'سبرايت', 'sprite', 'ثومية', 'مايونيز', 'mayo'].some(kw => nameAr.includes(kw) || nameEn.includes(kw));
 
-    if (!isDrinkOrSauce) {
+    if (!isDrinkOrSauce && shouldShowUpsellModal()) {
         triggerUpsellModal(item);
     } else {
-        toggleCart(true); // If they added a drink/sauce, just show the cart directly
+        toggleCart(true);
     }
 }
 
@@ -1132,11 +1132,41 @@ function addCustomizedToCart() {
     updateCartUI();
     closeCustomizer();
 
-    showToast(lang === 'ar' ? `تم إضافة تخصيص السوشي بنجاح! 🍣` : `Sushi customization added successfully! 🍣`);
-    triggerUpsellModal(item);
+    showToast(lang === 'ar' ? `تم إضافة تخصيص السوشي بنجاح!` : `Sushi customization added successfully!`);
+    if (shouldShowUpsellModal()) {
+        triggerUpsellModal(item);
+    } else {
+        toggleCart(true);
+    }
 }
 
 // --- Premium Upsell Modal System ---
+function getConfiguredUpsellIds() {
+    if (globalSettings?.upsellEnabled === false) return [];
+    if (Array.isArray(globalSettings?.upsellItemIds) && globalSettings.upsellItemIds.length > 0) {
+        return globalSettings.upsellItemIds;
+    }
+    return (currentMenuItems || []).filter(i => i.isUpsell).map(i => i.id);
+}
+
+function shouldShowUpsellModal() {
+    return getConfiguredUpsellIds().length > 0;
+}
+
+function resolveUpsellRecommendations(cartItemIds) {
+    const allItems = [...(currentMenuItems || []), ...(typeof sushiMenu !== 'undefined' ? sushiMenu : [])];
+    const byId = new Map(allItems.map(item => [item.id, item]));
+    const ordered = [];
+
+    getConfiguredUpsellIds().forEach(id => {
+        const menuItem = byId.get(id);
+        if (!menuItem || cartItemIds.has(menuItem.id) || !isMenuItemAvailable(menuItem)) return;
+        ordered.push(menuItem);
+    });
+
+    return ordered.slice(0, 6);
+}
+
 function triggerUpsellModal(item) {
     const modal = document.getElementById('upsell-modal');
     const recGrid = document.getElementById('upsell-recommendations');
@@ -1144,41 +1174,25 @@ function triggerUpsellModal(item) {
 
     const lang = currentLanguage;
     const currency = translations[lang].price_currency;
-
-    // Get all items and filter for upsell items only
-    const allItems = [...(currentMenuItems || []), ...(sushiMenu || [])];
-    const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
     const cartItemIds = new Set(cart.map(i => i.id));
-    
-    // Step 1: Look for items marked as isUpsell = true in admin panel
-    let upsellCandidates = uniqueItems.filter(i => i.isUpsell && !cartItemIds.has(i.id));
-    
-    // Step 2: If no admin-specified upsells, fall back to smart suggestions (drinks, sauces, sides)
-    if (upsellCandidates.length === 0) {
-        const upsellCategories = ['drinks', 'beverages', 'sauces', 'sides', 'appetizers'];
-        const upsellKeywords = ['صوص', 'sauce', 'بيبسي', 'pepsi', 'كولا', 'cola', 'مياه', 'water', 'بطاطس', 'fries', 'سفن', '7up', 'سبرايت', 'sprite', 'رانش', 'ranch', 'مايونيز', 'mayo', 'ثومية'];
-        
-        upsellCandidates = uniqueItems.filter(i => {
-            if (cartItemIds.has(i.id)) return false;
-            const cat = (i.category || '').toLowerCase();
-            const nameAr = (i.name_ar || '').toLowerCase();
-            const nameEn = (i.name || '').toLowerCase();
-            return upsellCategories.includes(cat) || upsellKeywords.some(kw => nameAr.includes(kw) || nameEn.includes(kw));
-        });
-    }
 
-    // If still no recommendations, show cart drawer directly
-    if (upsellCandidates.length === 0) {
+    if (!shouldShowUpsellModal()) {
         toggleCart(true);
         return;
     }
 
-    const recommendations = upsellCandidates.slice(0, 4);
+    const recommendations = resolveUpsellRecommendations(cartItemIds);
+
+    if (recommendations.length === 0) {
+        toggleCart(true);
+        return;
+    }
 
     if (recommendations.length > 0) {
         recGrid.innerHTML = recommendations.map(recItem => {
-            const recName = lang === 'ar' ? (recItem.name_ar || recItem.name) : (recItem.name || recItem.name_ar);
-            const recImg = recItem.images?.[0] || '../asseat/only logo.jpg';
+            const recName = resolveItemName(recItem, lang);
+            const recImg = getItemPrimaryImage(recItem) || './asseat/only logo remove background.png';
+            const safeId = String(recItem.id).replace(/'/g, "\\'");
             return `
                 <div class="flex flex-col justify-between items-center p-4 bg-[#132f34] border border-[#d4a17b]/30 rounded-3xl text-center shadow-lg hover:border-[#d4a17b] transition-all duration-300 animate-in fade-in zoom-in duration-200">
                     <div class="w-20 h-20 rounded-2xl overflow-hidden mb-3 shadow-md bg-[#0b272a] mx-auto border border-white/5">
@@ -1188,7 +1202,7 @@ function triggerUpsellModal(item) {
                         <h4 class="text-xs font-black text-white line-clamp-2 leading-tight">${recName}</h4>
                         <span class="text-xs font-black text-[#d4a17b] mt-1">${recItem.price} ${currency}</span>
                     </div>
-                    <button onclick="addToOrderFromUpsell('${recItem.id}')" id="btn-upsell-${recItem.id}" class="w-full py-2.5 rounded-2xl bg-[#d4a17b] text-[#0b272a] hover:bg-white hover:text-[#0b272a] transition-all font-black text-xs flex items-center justify-center gap-1 active:scale-95 shadow-md">
+                    <button onclick="addToOrderFromUpsell('${safeId}')" id="btn-upsell-${safeId}" class="w-full py-2.5 rounded-2xl bg-[#d4a17b] text-[#0b272a] hover:bg-white hover:text-[#0b272a] transition-all font-black text-xs flex items-center justify-center gap-1 active:scale-95 shadow-md">
                         <span class="material-symbols-outlined text-[14px] font-black">add</span>
                         <span>إضافة الوجبة</span>
                     </button>
@@ -1197,6 +1211,8 @@ function triggerUpsellModal(item) {
         }).join('');
 
         // Make sure standard global addToOrderFromUpsell function works
+        const allItems = [...(currentMenuItems || []), ...(typeof sushiMenu !== 'undefined' ? sushiMenu : [])];
+
         window.addToOrderFromUpsell = async (itemId) => {
             const btn = document.getElementById(`btn-upsell-${itemId}`);
             if (btn) {
@@ -1206,22 +1222,20 @@ function triggerUpsellModal(item) {
 
             const recItem = allItems.find(i => i.id === itemId);
             if (recItem) {
-                // Add simple item to cart
                 const cartItem = {
                     cartId: Date.now().toString(),
                     id: recItem.id,
-                    name: currentLanguage === 'ar' ? (recItem.name_ar || recItem.name) : (recItem.name_en || recItem.name || recItem.name_ar),
+                    name: resolveItemName(recItem, currentLanguage),
                     price: recItem.price,
                     quantity: 1,
-                    image: recItem.images[0],
+                    image: getItemPrimaryImage(recItem),
                     customizations: null
                 };
                 cart.push(cartItem);
                 saveCart();
                 updateCartUI();
-                showToast(currentLanguage === 'ar' ? `تم إضافة ${recItem.name_ar || recItem.name} 🥤` : `Added ${recItem.name_en || recItem.name} 🥤`);
-                
-                // Re-trigger/refresh upsell modal items dynamically
+                showToast(`تم إضافة ${resolveItemName(recItem, currentLanguage)}`);
+
                 triggerUpsellModal(item);
             }
         };
