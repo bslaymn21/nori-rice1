@@ -1339,26 +1339,25 @@ async function submitCartWithCustomer(customer) {
     const currency = translations[lang].price_currency;
     const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
     const mapsLink = resolveCustomerMapsLink(customer);
+    const sep = '______________';
 
-    let msg = `Nori&Rice\n\n`;
+    let msg = `Nori&Rice\n`;
     msg += `البيانات\n`;
-    msg += `──────────────\n`;
+    msg += `${sep}\n`;
     msg += `الاسم : ${customer.name}\n`;
     msg += `رقم التواصل : ${customer.phone}\n`;
     msg += `العنوان : ${customer.address}\n`;
     if (mapsLink) {
         msg += `اللوكيشن :\n${mapsLink}\n`;
     }
-    msg += `\n-----------------------\n`;
+    msg += `${sep}\n`;
     msg += `تفاصيل الاوردر\n`;
-    msg += `-----------------------\n\n`;
+    msg += `${sep}\n`;
 
     cart.forEach((item, index) => {
-        const lineTotal = item.price * item.quantity;
         msg += `${index + 1}) ${item.name}\n`;
-        msg += `   الكمية : ${item.quantity}\n`;
-        msg += `   السعر : ${item.price} ${currency}\n`;
-        msg += `   الإجمالي : ${lineTotal} ${currency}\n`;
+        msg += `الكمية : ${item.quantity}\n`;
+        msg += `السعر : ${item.price} ${currency}\n`;
 
         if (item.customizations) {
             const cust = item.customizations;
@@ -1368,17 +1367,16 @@ async function submitCartWithCustomer(customer) {
             if (cust.method) details.push(`النوع: ${cust.method}`);
 
             if (details.length > 0) {
-                msg += `   التخصيص : ${details.join(' | ')}\n`;
+                msg += `التخصيص : ${details.join(' | ')}\n`;
             }
 
             if (cust.addons && cust.addons.length > 0) {
-                msg += `   الإضافات : ${cust.addons.join(' + ')}\n`;
+                msg += `الإضافات : ${cust.addons.join(' + ')}\n`;
             }
         }
-        msg += `\n`;
     });
 
-    msg += `-----------------------\n`;
+    msg += `${sep}\n`;
     msg += `المجموع الكلي : ${totalPrice} ${currency}`;
 
     const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
