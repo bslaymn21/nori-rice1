@@ -8,6 +8,11 @@ import {
     trackVisitor, trackQRScan, trackWhatsAppOrder
 } from '../database/services.js';
 
+import {
+    detectUserLocation, isLocationDetected, getLocationData,
+    resetLocationState, initializeGeolocationModule
+} from './geolocation.js';
+
 // --- Global Variables & App State ---
 let currentLanguage = 'ar'; // Always Arabic
 let currentCustomer = JSON.parse(localStorage.getItem('nori_customer') || 'null');
@@ -1231,6 +1236,9 @@ function openCustomerModal() {
         form.setAttribute('data-listener', 'true');
     }
 
+    // Initialize Geolocation Module
+    initializeGeolocationModule();
+
     modal.classList.remove('hidden');
 }
 
@@ -1257,7 +1265,18 @@ async function handleCustomerFormSubmit(event) {
     }
 
     try {
+        // --- Collect customer data including location coordinates ---
         const customerData = { name, phone, address };
+
+        // --- Add location coordinates if available ---
+        const locationData = getLocationData();
+        if (locationData.isDetected) {
+            customerData.latitude = locationData.latitude;
+            customerData.longitude = locationData.longitude;
+            customerData.accuracy = locationData.accuracy;
+            customerData.locationDetectedAt = locationData.timestamp;
+        }
+
         const customerId = await saveCustomer(customerData);
         currentCustomer = { id: customerId, ...customerData };
         localStorage.setItem('nori_customer', JSON.stringify(currentCustomer));
@@ -1284,7 +1303,15 @@ async function submitCartWithCustomer(customer) {
     let msg = `🍣 *طلب وجبات سوشي جديدة - نوري & رايس* 🍣\n\n`;
     msg += `👤 الاسم: ${customer.name}\n`;
     msg += `📱 الهاتف: ${customer.phone}\n`;
-    msg += `📍 العنوان: ${customer.address}\n\n`;
+    msg += `📍 العنوان: ${customer.address}\n`;
+
+    // --- Add location coordinates if available ---
+    if (customer.latitude && customer.longitude) {
+        msg += `📡 الإحداثيات: ${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}\n`;
+        msg += `🎯 دقة التحديد: ±${(customer.accuracy || 0).toFixed(2)}م\n`;
+    }
+
+    msg += `\n`;
 
     cart.forEach((item, index) => {
         msg += `*${index + 1}. ${item.name}* (الكمية: ${item.quantity})\n`;
@@ -1315,7 +1342,7 @@ async function submitCartWithCustomer(customer) {
     trackWhatsAppOrder(); // Track WhatsApp conversion
 
     try {
-        await saveOrder({
+        const orderPayload = {
             customerId: customer.id,
             customerName: customer.name,
             customerPhone: customer.phone,
@@ -1323,7 +1350,17 @@ async function submitCartWithCustomer(customer) {
             items: cart,
             totalPrice,
             sentVia: 'whatsapp'
-        });
+        };
+
+        // --- Add location data if available ---
+        if (customer.latitude && customer.longitude) {
+            orderPayload.latitude = customer.latitude;
+            orderPayload.longitude = customer.longitude;
+            orderPayload.accuracy = customer.accuracy;
+            orderPayload.locationDetectedAt = customer.locationDetectedAt;
+        }
+
+        await saveOrder(orderPayload);
     } catch (error) {
         console.error('Error saving order record:', error);
     }

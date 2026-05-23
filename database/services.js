@@ -409,6 +409,14 @@ export async function saveCustomer(customerData) {
             updatedAt: new Date().toISOString()
         };
 
+        // Add location coordinates if available
+        if (customerData.latitude && customerData.longitude) {
+            payload.latitude = customerData.latitude;
+            payload.longitude = customerData.longitude;
+            payload.accuracy = customerData.accuracy || null;
+            payload.locationDetectedAt = customerData.locationDetectedAt || new Date().toISOString();
+        }
+
         if (existing && existing.id) {
             const docRef = doc(db, "customers", existing.id);
             await setDoc(docRef, { ...existing, ...payload }, { merge: true });

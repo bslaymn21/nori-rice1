@@ -510,6 +510,11 @@
             <h2 class="text-2xl font-black text-white mb-3">أدخل بياناتك</h2>
             <p id="customer-note" class="text-sm text-slate-400 mb-5">يرجى كتابة الاسم ورقم الهاتف والعنوان بالكامل قبل إرسال الطلب.</p>
             <form id="customer-form" class="space-y-4">
+                <!-- Hidden Location Inputs (for storing latitude, longitude, accuracy) -->
+                <input type="hidden" id="customer-latitude" name="latitude">
+                <input type="hidden" id="customer-longitude" name="longitude">
+                <input type="hidden" id="customer-location-accuracy" name="accuracy">
+
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">الاسم</label>
                     <input type="text" id="customer-name" placeholder="مثال: محمد أحمد"
@@ -525,6 +530,16 @@
                     <textarea id="customer-address" rows="3" placeholder="مثال: شارع البحر، عمارة 5، الدور 2، شقة 12"
                         class="w-full bg-slate-900 border border-white/10 rounded-2xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none" required></textarea>
                 </div>
+
+                <!-- Geolocation Button Section -->
+                <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <p class="text-[11px] text-slate-400 mb-3 font-semibold">📍 أو دع النظام يحدد موقعك تلقائياً:</p>
+                    <button type="button" id="detect-location-btn" class="w-full py-3 rounded-2xl bg-secondary text-[#0b272a] font-black text-base hover:bg-secondary/80 transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">location_on</span>
+                        <span>تحديد موقعي الحالي تلقائياً</span>
+                    </button>
+                </div>
+
                 <div class="flex flex-col gap-3 pt-2">
                     <button type="submit" class="w-full py-3 rounded-2xl bg-primary text-[#0b272a] font-black text-base hover:scale-[1.01] transition-all">تأكيد البيانات وإرسال الطلب</button>
                     <button type="button" onclick="closeCustomerModal()" class="w-full py-3 rounded-2xl bg-white/5 text-slate-300 font-black text-base hover:bg-white/10 transition-all">إلغاء</button>
