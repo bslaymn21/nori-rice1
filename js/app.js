@@ -549,6 +549,7 @@ function renderMenu() {
     filteredItems.forEach(item => {
         const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
         const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
+        const imageSrc = (item.images && item.images.length > 0) ? optimizeCloudinaryUrl(item.images[0], 600) : '';
         const orderText = translations[lang].ordered_count.replace('{n}', item.timesOrdered || '40');
 
         // Check dynamic tags
@@ -1557,6 +1558,8 @@ function setMenuMode(mode) {
         if (btnGrid) {
             btnGrid.className = "px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center transition-all duration-300 active:scale-95 text-slate-400 hover:text-white";
         }
+
+        renderDynamicFlipbook();
     } else {
         if (bookWrapper) bookWrapper.classList.add('hidden');
         if (categorySlider) categorySlider.classList.remove('hidden');

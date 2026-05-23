@@ -341,17 +341,12 @@ function updateLocationButton(isSuccess) {
  * Displays a friendly success message with place name and map link
  */
 function showLocationSuccessMessage(placeName, latitude, longitude, accuracy) {
-    const message = `
-        ✅ تم تحديد موقعك بنجاح!\n
-        📍 المكان: ${placeName}\n
-        🎯 دقة التحديد: ±${accuracy.toFixed(2)} متراً
-    `;
+    const message = `✅ تم تحديد موقعك بنجاح! تم ملء العنوان تلقائياً. المكان: ${placeName}`;
 
-    // --- Use existing toast system if available ---
     if (typeof showToast === 'function') {
-        showToast('✅ تم تحديد موقعك بنجاح! تم ملء العنوان تلقائياً.', false);
+        showToast(message, false);
     } else {
-        alert(message);
+        console.info(message);
     }
 }
 
@@ -367,11 +362,10 @@ function showGeoLocationError(errorCode, customMessage = null) {
 
     console.error('🚫 GeoLocation Error:', errorData);
 
-    // --- Use existing toast system if available ---
     if (typeof showToast === 'function') {
-        showToast(`${errorData.title}\n${finalMessage}`, true);
+        showToast(`${errorData.title} ${finalMessage}`, true);
     } else {
-        alert(`${errorData.title}\n${finalMessage}`);
+        console.warn(`${errorData.title} ${finalMessage}`);
     }
 }
 
