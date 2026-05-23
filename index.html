@@ -510,10 +510,12 @@
             <h2 class="text-2xl font-black text-white mb-3">أدخل بياناتك</h2>
             <p id="customer-note" class="text-sm text-slate-400 mb-5">يرجى كتابة الاسم ورقم الهاتف والعنوان بالكامل قبل إرسال الطلب.</p>
             <form id="customer-form" class="space-y-4">
-                <!-- Hidden Location Inputs (for storing latitude, longitude, accuracy) -->
+                <!-- Hidden Location Inputs -->
                 <input type="hidden" id="customer-latitude" name="latitude">
                 <input type="hidden" id="customer-longitude" name="longitude">
                 <input type="hidden" id="customer-location-accuracy" name="accuracy">
+                <input type="hidden" id="customer-place-name" name="placeName">
+                <input type="hidden" id="customer-maps-link" name="mapsLink">
 
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">الاسم</label>

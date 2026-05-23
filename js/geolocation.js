@@ -3,7 +3,7 @@
  * GEOLOCATION MODULE - Nori & Rice
  * =====================================================================
  * Modern ES6+ module for handling customer location detection
- * and coordinate management (Latitude & Longitude)
+ * with Reverse Geocoding to get actual address names and Maps links
  * =====================================================================
  */
 
@@ -14,6 +14,8 @@ const GeoLocationState = {
     latitude: null,
     longitude: null,
     accuracy: null,
+    placeName: null,
+    mapsLink: null,
     timestamp: null,
     errorMessage: null
 };
@@ -35,16 +37,95 @@ const GeoErrorMessages = {
     'UNKNOWN_ERROR': {
         title: '❌ خطأ غير متوقع',
         message: 'حدث خطأ غير متوقع أثناء تحديد موقعك. يرجى المحاولة مرة أخرى.'
+    },
+    'GEOCODING_ERROR': {
+        title: '⚠️ خطأ في تحديد اسم المكان',
+        message: 'تم جلب موقعك لكن فشل تحديد اسم المكان. الرجاء إدخال العنوان يدوياً.'
     }
 };
 
 /**
  * ===================================================================
- * MAIN FUNCTION: Detect & Auto-Fill User Location
+ * REVERSE GEOCODING: Convert Coordinates to Address Name
+ * ===================================================================
+ * Uses OpenStreetMap Nominatim API (Free, No API Key Required)
+ * Gets the actual place name from latitude and longitude
+ */
+async function reverseGeocodeLocation(latitude, longitude) {
+    try {
+        // --- Use OpenStreetMap Nominatim API (Free Alternative) ---
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            {
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Nori-Rice-App/1.0'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('Geocoding API Error');
+        }
+
+        const data = await response.json();
+        const address = data.address || {};
+
+        // --- Build comprehensive address string in Arabic context ---
+        let placeName = '';
+
+        // Priority: building → road → neighbourhood → city
+        if (address.building) {
+            placeName += address.building;
+        }
+        if (address.road) {
+            placeName += (placeName ? ', ' : '') + address.road;
+        }
+        if (address.neighbourhood) {
+            placeName += (placeName ? ', ' : '') + address.neighbourhood;
+        }
+        if (address.suburb) {
+            placeName += (placeName ? ', ' : '') + address.suburb;
+        }
+        if (address.city) {
+            placeName += (placeName ? ', ' : '') + address.city;
+        }
+        if (address.state || address.county) {
+            placeName += (placeName ? ', ' : '') + (address.state || address.county);
+        }
+
+        // --- Fallback if no detailed address found ---
+        if (!placeName && data.display_name) {
+            placeName = data.display_name.split(',').slice(0, 3).join(',').trim();
+        }
+
+        console.info('✅ Place name detected:', placeName);
+        return placeName || null;
+    } catch (error) {
+        console.warn('⚠️ Reverse Geocoding Error:', error.message);
+        return null;
+    }
+}
+
+/**
+ * ===================================================================
+ * GENERATE GOOGLE MAPS LINK
+ * ===================================================================
+ * Creates a shareable Google Maps link with the exact coordinates
+ */
+function generateMapsLink(latitude, longitude) {
+    return `https://maps.google.com/?q=${latitude},${longitude}`;
+}
+
+/**
+ * ===================================================================
+ * MAIN FUNCTION: Detect & Auto-Fill User Location with Place Name
  * ===================================================================
  * - Requests browser permission for geolocation
  * - Fetches latitude & longitude coordinates
- * - Updates hidden input fields automatically
+ * - Performs Reverse Geocoding to get place name
+ * - Auto-fills address field with actual place name
+ * - Generates shareable Google Maps link
  * - Shows user-friendly messages in Arabic
  * - Updates UI (button text, color) on success
  */
@@ -65,37 +146,60 @@ export async function detectUserLocation() {
     return new Promise((resolve) => {
         // --- Geolocation Options (HIGH ACCURACY) ---
         const options = {
-            enableHighAccuracy: true,      // Request high-precision coordinates
-            timeout: 10000,                 // 10 seconds timeout
-            maximumAge: 0                   // Don't use cached location
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
         };
 
         // --- Success Handler ---
-        const onSuccess = (position) => {
+        const onSuccess = async (position) => {
             const { latitude, longitude, accuracy } = position.coords;
+
+            setGeoLoadingState(true); // Keep loading while geocoding
+
+            // --- Perform Reverse Geocoding ---
+            const placeName = await reverseGeocodeLocation(latitude, longitude);
+
+            if (!placeName) {
+                setGeoLoadingState(false);
+                showGeoLocationError('GEOCODING_ERROR');
+                updateLocationButton(false);
+                resolve(false);
+                return;
+            }
+
+            // --- Generate Google Maps Link ---
+            const mapsLink = generateMapsLink(latitude, longitude);
 
             // --- Store Location Data ---
             GeoLocationState.latitude = latitude;
             GeoLocationState.longitude = longitude;
             GeoLocationState.accuracy = accuracy;
+            GeoLocationState.placeName = placeName;
+            GeoLocationState.mapsLink = mapsLink;
             GeoLocationState.timestamp = new Date().toISOString();
             GeoLocationState.isLocationDetected = true;
             GeoLocationState.errorMessage = null;
 
             // --- Update Hidden Inputs ---
-            updateHiddenLocationInputs(latitude, longitude, accuracy);
+            updateHiddenLocationInputs(latitude, longitude, accuracy, placeName, mapsLink);
+
+            // --- Auto-fill Address Field with Place Name ---
+            autoFillAddressField(placeName);
 
             // --- Update Button UI ---
             updateLocationButton(true);
 
-            // --- Show Success Message ---
-            showLocationSuccessMessage(latitude, longitude, accuracy);
+            // --- Show Success Message with Place Name ---
+            showLocationSuccessMessage(placeName, latitude, longitude, accuracy);
 
             // --- Log for debugging ---
             console.info('✅ Location detected successfully:', {
+                placeName,
                 latitude: latitude.toFixed(6),
                 longitude: longitude.toFixed(6),
-                accuracy: `±${accuracy.toFixed(2)}m`
+                accuracy: `±${accuracy.toFixed(2)}m`,
+                mapsLink
             });
 
             setGeoLoadingState(false);
@@ -137,15 +241,32 @@ export async function detectUserLocation() {
 
 /**
  * ===================================================================
+ * AUTO-FILL ADDRESS FIELD
+ * ===================================================================
+ * Automatically populates the customer address field with place name
+ */
+function autoFillAddressField(placeName) {
+    const addressInput = document.getElementById('customer-address');
+    if (addressInput) {
+        addressInput.value = placeName;
+        addressInput.setAttribute('data-autofilled', 'true');
+        console.info('📍 Address field auto-filled:', placeName);
+    }
+}
+
+/**
+ * ===================================================================
  * UPDATE HIDDEN INPUT FIELDS
  * ===================================================================
- * Automatically populates latitude and longitude hidden inputs
- * These values will be sent with the order form to Firebase
+ * Automatically populates latitude, longitude, place name, and maps link
+ * hidden inputs. These values will be sent with the order to Firebase
  */
-function updateHiddenLocationInputs(latitude, longitude, accuracy) {
+function updateHiddenLocationInputs(latitude, longitude, accuracy, placeName, mapsLink) {
     const latitudeInput = document.getElementById('customer-latitude');
     const longitudeInput = document.getElementById('customer-longitude');
     const accuracyInput = document.getElementById('customer-location-accuracy');
+    const placeNameInput = document.getElementById('customer-place-name');
+    const mapsLinkInput = document.getElementById('customer-maps-link');
 
     if (latitudeInput) {
         latitudeInput.value = latitude.toString();
@@ -159,6 +280,15 @@ function updateHiddenLocationInputs(latitude, longitude, accuracy) {
 
     if (accuracyInput) {
         accuracyInput.value = accuracy.toFixed(2);
+    }
+
+    if (placeNameInput) {
+        placeNameInput.value = placeName;
+        placeNameInput.setAttribute('data-detected', 'true');
+    }
+
+    if (mapsLinkInput) {
+        mapsLinkInput.value = mapsLink;
     }
 
     console.info('📍 Hidden location inputs updated');
@@ -208,18 +338,18 @@ function updateLocationButton(isSuccess) {
  * ===================================================================
  * SHOW SUCCESS MESSAGE (Toast Notification)
  * ===================================================================
- * Displays a friendly success message with location coordinates
+ * Displays a friendly success message with place name and map link
  */
-function showLocationSuccessMessage(latitude, longitude, accuracy) {
+function showLocationSuccessMessage(placeName, latitude, longitude, accuracy) {
     const message = `
         ✅ تم تحديد موقعك بنجاح!\n
-        📍 الإحداثيات: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n
+        📍 المكان: ${placeName}\n
         🎯 دقة التحديد: ±${accuracy.toFixed(2)} متراً
     `;
 
     // --- Use existing toast system if available ---
     if (typeof showToast === 'function') {
-        showToast('✅ تم تحديد موقعك بنجاح! يمكنك الآن إكمال طلبك.', false);
+        showToast('✅ تم تحديد موقعك بنجاح! تم ملء العنوان تلقائياً.', false);
     } else {
         alert(message);
     }
@@ -230,7 +360,6 @@ function showLocationSuccessMessage(latitude, longitude, accuracy) {
  * SHOW ERROR MESSAGE (Error Notification)
  * ===================================================================
  * Displays user-friendly error messages in Arabic
- * with instructions on how to fix the problem
  */
 function showGeoLocationError(errorCode, customMessage = null) {
     const errorData = GeoErrorMessages[errorCode] || GeoErrorMessages['UNKNOWN_ERROR'];
@@ -250,7 +379,6 @@ function showGeoLocationError(errorCode, customMessage = null) {
  * ===================================================================
  * LOADING STATE MANAGEMENT
  * ===================================================================
- * Updates global state to show loading indicator
  */
 function setGeoLoadingState(isLoading) {
     GeoLocationState.isLoading = isLoading;
@@ -280,14 +408,13 @@ function setGeoLoadingState(isLoading) {
  * ===================================================================
  * VALIDATE LOCATION DATA
  * ===================================================================
- * Checks if location has been properly detected
- * Returns true if coordinates are valid
  */
 export function isLocationDetected() {
     return (
         GeoLocationState.isLocationDetected &&
         GeoLocationState.latitude !== null &&
-        GeoLocationState.longitude !== null
+        GeoLocationState.longitude !== null &&
+        GeoLocationState.placeName !== null
     );
 }
 
@@ -295,14 +422,15 @@ export function isLocationDetected() {
  * ===================================================================
  * GET CURRENT LOCATION DATA
  * ===================================================================
- * Returns current stored location coordinates
- * Useful for manual validation before form submission
+ * Returns current stored location including place name and maps link
  */
 export function getLocationData() {
     return {
         latitude: GeoLocationState.latitude,
         longitude: GeoLocationState.longitude,
         accuracy: GeoLocationState.accuracy,
+        placeName: GeoLocationState.placeName,
+        mapsLink: GeoLocationState.mapsLink,
         timestamp: GeoLocationState.timestamp,
         isDetected: GeoLocationState.isLocationDetected
     };
@@ -312,13 +440,13 @@ export function getLocationData() {
  * ===================================================================
  * RESET LOCATION STATE
  * ===================================================================
- * Clears all stored location data and resets button state
- * Useful for clearing form or allowing re-detection
  */
 export function resetLocationState() {
     GeoLocationState.latitude = null;
     GeoLocationState.longitude = null;
     GeoLocationState.accuracy = null;
+    GeoLocationState.placeName = null;
+    GeoLocationState.mapsLink = null;
     GeoLocationState.timestamp = null;
     GeoLocationState.isLocationDetected = false;
     GeoLocationState.errorMessage = null;
@@ -328,10 +456,14 @@ export function resetLocationState() {
     const latitudeInput = document.getElementById('customer-latitude');
     const longitudeInput = document.getElementById('customer-longitude');
     const accuracyInput = document.getElementById('customer-location-accuracy');
+    const placeNameInput = document.getElementById('customer-place-name');
+    const mapsLinkInput = document.getElementById('customer-maps-link');
 
     if (latitudeInput) latitudeInput.value = '';
     if (longitudeInput) longitudeInput.value = '';
     if (accuracyInput) accuracyInput.value = '';
+    if (placeNameInput) placeNameInput.value = '';
+    if (mapsLinkInput) mapsLinkInput.value = '';
 
     // --- Reset button ---
     updateLocationButton(false);
@@ -341,8 +473,6 @@ export function resetLocationState() {
  * ===================================================================
  * INITIALIZE GEOLOCATION MODULE
  * ===================================================================
- * Attaches event listeners to the detection button
- * Called on page load or when customer modal opens
  */
 export function initializeGeolocationModule() {
     const button = document.getElementById('detect-location-btn');

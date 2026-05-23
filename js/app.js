@@ -1265,15 +1265,17 @@ async function handleCustomerFormSubmit(event) {
     }
 
     try {
-        // --- Collect customer data including location coordinates ---
+        // --- Collect customer data including location information ---
         const customerData = { name, phone, address };
 
-        // --- Add location coordinates if available ---
+        // --- Add location data if available ---
         const locationData = getLocationData();
         if (locationData.isDetected) {
             customerData.latitude = locationData.latitude;
             customerData.longitude = locationData.longitude;
             customerData.accuracy = locationData.accuracy;
+            customerData.placeName = locationData.placeName;
+            customerData.mapsLink = locationData.mapsLink;
             customerData.locationDetectedAt = locationData.timestamp;
         }
 
@@ -1305,10 +1307,9 @@ async function submitCartWithCustomer(customer) {
     msg += `📱 الهاتف: ${customer.phone}\n`;
     msg += `📍 العنوان: ${customer.address}\n`;
 
-    // --- Add location coordinates if available ---
-    if (customer.latitude && customer.longitude) {
-        msg += `📡 الإحداثيات: ${customer.latitude.toFixed(6)}, ${customer.longitude.toFixed(6)}\n`;
-        msg += `🎯 دقة التحديد: ±${(customer.accuracy || 0).toFixed(2)}م\n`;
+    // --- Add location with Maps link if available ---
+    if (customer.mapsLink) {
+        msg += `🗺️ موقع العميل: ${customer.mapsLink}\n`;
     }
 
     msg += `\n`;
@@ -1357,6 +1358,8 @@ async function submitCartWithCustomer(customer) {
             orderPayload.latitude = customer.latitude;
             orderPayload.longitude = customer.longitude;
             orderPayload.accuracy = customer.accuracy;
+            orderPayload.placeName = customer.placeName;
+            orderPayload.mapsLink = customer.mapsLink;
             orderPayload.locationDetectedAt = customer.locationDetectedAt;
         }
 

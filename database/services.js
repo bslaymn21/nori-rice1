@@ -409,11 +409,13 @@ export async function saveCustomer(customerData) {
             updatedAt: new Date().toISOString()
         };
 
-        // Add location coordinates if available
+        // Add location coordinates and place information if available
         if (customerData.latitude && customerData.longitude) {
             payload.latitude = customerData.latitude;
             payload.longitude = customerData.longitude;
             payload.accuracy = customerData.accuracy || null;
+            payload.placeName = customerData.placeName || null;
+            payload.mapsLink = customerData.mapsLink || null;
             payload.locationDetectedAt = customerData.locationDetectedAt || new Date().toISOString();
         }
 
