@@ -209,11 +209,12 @@ async function refreshData() {
         if (settings) {
             populateSettingsForm(settings);
             upsellEnabled = settings.upsellEnabled !== false;
-            upsellSelectedIds = Array.isArray(settings.upsellItemIds) ? [...settings.upsellItemIds] : [];
+            upsellSelectedIds = normalizeUpsellIds(settings.upsellItemIds);
             if (upsellSelectedIds.length === 0) {
                 upsellSelectedIds = currentData.filter(i => i.isUpsell).map(i => getMenuItemDocId(i)).filter(Boolean);
             }
             window.noriUpsellIds = upsellSelectedIds;
+            renderMenuGrid();
         }
 
         const upsellTab = document.getElementById('content-upsell');
@@ -306,6 +307,19 @@ function escapeAdminHtml(text) {
 
 function getMenuItemDocId(item) {
     return item?.id || item?.internalId || null;
+}
+
+function normalizeUpsellIds(rawIds) {
+    if (Array.isArray(rawIds)) return rawIds.filter(Boolean).map(String);
+    if (typeof rawIds === 'string') {
+        try {
+            const parsed = JSON.parse(rawIds);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+        } catch (e) {
+            return rawIds.split(',').map(id => String(id).trim()).filter(Boolean);
+        }
+    }
+    return [];
 }
 
 function findMenuItemByDocId(itemId) {
@@ -470,6 +484,7 @@ async function saveUpsellSettings() {
         window.noriUpsellIds = [...upsellSelectedIds];
         showNotification('تم حفظ الإضافات المقترحة بنجاح');
         renderMenuGrid();
+        await refreshUpsellMenuList();
     } catch (e) {
         console.error(e);
         showNotification('فشل الحفظ', 'error');

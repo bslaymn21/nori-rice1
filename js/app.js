@@ -53,6 +53,33 @@ function isFlipbookMobile() {
     return window.innerWidth < 840;
 }
 
+function normalizeUpsellIds(rawIds) {
+    const extract = id => {
+        if (id == null) return null;
+        if (typeof id === 'object') {
+            return id.id || id.internalId || id._id || null;
+        }
+        return String(id).trim();
+    };
+
+    if (Array.isArray(rawIds)) {
+        return rawIds.map(extract).filter(Boolean).map(String);
+    }
+    if (typeof rawIds === 'string') {
+        const trimmed = rawIds.trim();
+        if (trimmed === '') return [];
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return parsed.map(extract).filter(Boolean).map(String);
+            }
+        } catch (e) {
+            return trimmed.split(',').map(id => String(id).trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
 function getFlipbookCacheKey() {
     const items = currentMenuItems.map(item => ({
         id: item.id,
@@ -182,6 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (settings) {
             globalSettings = settings;
+            globalSettings.upsellItemIds = normalizeUpsellIds(settings.upsellItemIds);
+            window.noriUpsellIds = getConfiguredUpsellIds();
             if (settings.whatsapp) {
                 RESTAURANT_WHATSAPP = settings.whatsapp;
                 document.querySelectorAll('a[href^="https://wa.me/"]').forEach(el => el.href = `https://wa.me/${settings.whatsapp}`);
@@ -622,6 +651,11 @@ function renderMenu() {
         }
         if (item.isSpecial) {
             tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#c18c64] border border-[#c18c64]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">local_fire_department</span>${translations[lang].tag_special}</span>`;
+        }
+
+        const configuredUpsell = getConfiguredUpsellIds();
+        if (configuredUpsell.includes(item.id)) {
+            tagsHtml += `<span class="px-3.5 py-1.5 bg-emerald-500 text-[#0b272a] border border-[#0b272a]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">shopping_cart</span>إضافة مقترحة</span>`;
         }
 
         // Check if there is discount (Floating Price Tag on Top Left)
@@ -1143,10 +1177,14 @@ function addCustomizedToCart() {
 // --- Premium Upsell Modal System ---
 function getConfiguredUpsellIds() {
     if (globalSettings?.upsellEnabled === false) return [];
-    if (Array.isArray(globalSettings?.upsellItemIds) && globalSettings.upsellItemIds.length > 0) {
-        return globalSettings.upsellItemIds;
-    }
-    return (currentMenuItems || []).filter(i => i.isUpsell).map(i => i.id);
+
+    const directIds = normalizeUpsellIds(globalSettings?.upsellItemIds);
+    if (directIds.length > 0) return directIds;
+
+    const windowIds = normalizeUpsellIds(window.noriUpsellIds);
+    if (windowIds.length > 0) return windowIds;
+
+    return (currentMenuItems || []).filter(i => i.isUpsell).map(i => String(i.id));
 }
 
 function shouldShowUpsellModal() {
@@ -1155,12 +1193,17 @@ function shouldShowUpsellModal() {
 
 function resolveUpsellRecommendations(cartItemIds) {
     const allItems = [...(currentMenuItems || []), ...(typeof sushiMenu !== 'undefined' ? sushiMenu : [])];
-    const byId = new Map(allItems.map(item => [item.id, item]));
-    const ordered = [];
+    const byId = new Map();
+    allItems.forEach(item => {
+        if (item.id != null) byId.set(String(item.id), item);
+        if (item.internalId != null) byId.set(String(item.internalId), item);
+    });
 
-    getConfiguredUpsellIds().forEach(id => {
+    const ordered = [];
+    getConfiguredUpsellIds().forEach(rawId => {
+        const id = String(rawId);
         const menuItem = byId.get(id);
-        if (!menuItem || cartItemIds.has(menuItem.id) || !isMenuItemAvailable(menuItem)) return;
+        if (!menuItem || cartItemIds.has(String(menuItem.id)) || !isMenuItemAvailable(menuItem)) return;
         ordered.push(menuItem);
     });
 
