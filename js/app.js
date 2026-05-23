@@ -13,6 +13,16 @@ import {
     resetLocationState, initializeGeolocationModule
 } from './geolocation.js';
 
+import {
+    resolveItemName,
+    resolveItemDescription,
+    isMenuItemAvailable,
+    getItemPrimaryImage,
+    getCategoryDisplayName
+} from './menu-utils.js';
+
+import { initScrollReveal, refreshScrollReveal } from './scroll-reveal.js';
+
 // --- Global Variables & App State ---
 let currentLanguage = 'ar'; // Always Arabic
 let currentCustomer = JSON.parse(localStorage.getItem('nori_customer') || 'null');
@@ -36,6 +46,52 @@ let promoTimerInterval = null;
 let currentMenuMode = 'book';
 let currentFlipbookPage = 1;
 let maxFlipbookPages = 4;
+let flipbookCacheKey = null;
+let flipbookRenderScheduled = false;
+
+function isFlipbookMobile() {
+    return window.innerWidth < 840;
+}
+
+function getFlipbookCacheKey() {
+    const items = currentMenuItems.map(item => ({
+        id: item.id,
+        category: item.category,
+        available: item.available,
+        price: item.price,
+        name_ar: item.name_ar || item.name,
+        name_en: item.name_en,
+        image: item.images?.[0] || ''
+    }));
+    const categories = (currentCategories || []).map(cat => cat.id || cat.name);
+    return JSON.stringify({ items, categories, lang: currentLanguage });
+}
+
+function invalidateFlipbookCache() {
+    flipbookCacheKey = null;
+}
+
+function ensureFlipbookRendered(force = false) {
+    const key = getFlipbookCacheKey();
+    if (!force && key === flipbookCacheKey) {
+        updateFlipbook();
+        return;
+    }
+
+    const runRender = () => {
+        flipbookRenderScheduled = false;
+        renderDynamicFlipbook();
+        flipbookCacheKey = key;
+    };
+
+    if (flipbookRenderScheduled) return;
+    flipbookRenderScheduled = true;
+
+    // Defer heavy DOM work so the mode toggle paints first (reduces perceived hang)
+    requestAnimationFrame(() => {
+        requestAnimationFrame(runRender);
+    });
+}
 
 // WhatsApp Contact (You can change it dynamically)
 let RESTAURANT_WHATSAPP = "201012345678"; // Representative restaurant phone
@@ -118,9 +174,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (menuItems) {
             currentMenuItems = menuItems;
+            invalidateFlipbookCache();
         }
         if (cats) {
             currentCategories = cats;
+            invalidateFlipbookCache();
         }
         if (settings) {
             globalSettings = settings;
@@ -184,6 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Track QR scan if user came via QR code
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('ref') === 'qr') {
+            sessionStorage.setItem('nori_qr_entry', '1');
             const qrTrackedToday = sessionStorage.getItem('nori_qr_day');
             if (qrTrackedToday !== today) {
                 sessionStorage.setItem('nori_qr_day', today);
@@ -219,6 +278,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update Cart Badge and UI
     updateCartUI();
+
+    initScrollReveal();
 });
 
 // --- Promo Offer Popup Logic ---
@@ -378,7 +439,8 @@ function checkRestaurantStatus() {
     // Always allow ordering even if closed (per user request)
     // Re-render menu to update states
     renderMenu();
-    renderDynamicFlipbook();
+    invalidateFlipbookCache();
+    if (currentMenuMode === 'book') ensureFlipbookRendered(true);
 }
 
 function updateClosedNotificationVisibility() {
@@ -444,7 +506,8 @@ function applyLanguage(l) {
         }
     });
 
-    renderDynamicFlipbook();
+    invalidateFlipbookCache();
+    if (currentMenuMode === 'book') ensureFlipbookRendered(true);
 }
 
 // --- Categories Render System ---
@@ -547,9 +610,9 @@ function renderMenu() {
 
     let html = '';
     filteredItems.forEach(item => {
-        const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
-        const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
-        const imageSrc = (item.images && item.images.length > 0) ? optimizeCloudinaryUrl(item.images[0], 600) : '';
+        const name = resolveItemName(item, lang);
+        const desc = resolveItemDescription(item, lang);
+        const imageSrc = optimizeCloudinaryUrl(getItemPrimaryImage(item), 600);
         const orderText = translations[lang].ordered_count.replace('{n}', item.timesOrdered || '40');
 
         // Check dynamic tags
@@ -578,7 +641,7 @@ function renderMenu() {
             `;
         }
 
-        const isAvailable = item.isAvailable !== false;
+        const isAvailable = isMenuItemAvailable(item);
         const buttonText = item.options ? translations[lang].btn_customize : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
         const buttonIcon = item.options ? 'tune' : 'visibility';
         const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/\"/g, '&quot;');
@@ -595,7 +658,7 @@ function renderMenu() {
         ` : '';
 
         html += `
-            <div class="bg-[#132f34] border-2 border-[#d4a17b]/40 rounded-3xl overflow-hidden flex flex-col group animate-slide-up shadow-[6px_6px_0px_0px_#d4a17b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-300 cursor-pointer">
+            <div class="menu-card-luxury reveal-on-scroll bg-[#132f34] border-2 border-[#d4a17b]/40 rounded-3xl overflow-hidden flex flex-col group shadow-[6px_6px_0px_0px_#d4a17b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all duration-300 cursor-pointer">
                 <!-- Thumbnail (No Dark Overlay for Vivid Food Display) -->
                 <div class="relative aspect-[4/3] overflow-hidden cursor-pointer bg-[#0b272a]" onclick="${buttonAction}">
                     ${featuredBadge}
@@ -604,7 +667,7 @@ function renderMenu() {
                             <div class="text-white font-black text-xl">غير متوفر</div>
                         </div>
                     ` : ''}
-                    <img src="${optimizeCloudinaryUrl(item.images[0], 600)}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <img src="${imageSrc}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" decoding="async">
                     
                     <!-- Floating Price Tag (Top Left) -->
                     ${priceHtml}
@@ -620,7 +683,7 @@ function renderMenu() {
                     <div>
                         <div class="flex justify-between items-start gap-2 mb-3">
                             <h3 class="text-2xl font-black text-white group-hover:text-primary transition-colors leading-tight">${name}</h3>
-                            <span class="text-[10px] bg-[#0b272a] text-[#d4a17b] px-3 py-1 font-black border border-[#d4a17b]/40 rounded-lg shadow-sm uppercase flex-shrink-0">${item.category}</span>
+                            <span class="text-[10px] bg-[#0b272a] text-[#d4a17b] px-3 py-1 font-black border border-[#d4a17b]/40 rounded-lg shadow-sm uppercase flex-shrink-0">${getCategoryDisplayName(item.category, lang, currentCategories)}</span>
                         </div>
                         <p class="text-sm text-slate-300 line-clamp-2 mb-4 leading-relaxed">${desc}</p>
                         
@@ -642,6 +705,7 @@ function renderMenu() {
     });
 
     menuContainer.innerHTML = html;
+    refreshScrollReveal();
 }
 
 // --- Simple Item Add ---
@@ -649,7 +713,7 @@ function addToOrderSimple(itemId) {
     const item = currentMenuItems.find(i => i.id === itemId) || (typeof sushiMenu !== 'undefined' ? sushiMenu.find(i => i.id === itemId) : null);
     if (!item) return;
 
-    if (item.isAvailable === false) {
+    if (!isMenuItemAvailable(item)) {
         showToast(currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable', true);
         return;
     }
@@ -657,17 +721,17 @@ function addToOrderSimple(itemId) {
     const cartItem = {
         cartId: Date.now().toString(),
         id: item.id,
-        name: currentLanguage === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar),
+        name: resolveItemName(item, currentLanguage),
         price: item.price,
         quantity: 1,
-        image: item.images[0],
+        image: getItemPrimaryImage(item),
         customizations: null
     };
 
     cart.push(cartItem);
     saveCart();
     updateCartUI();
-    const resolvedName = currentLanguage === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
+    const resolvedName = resolveItemName(item, currentLanguage);
     showToast(currentLanguage === 'ar' ? `تم إضافة ${resolvedName} إلى السلة 🍣` : `Added ${resolvedName} to basket 🍣`);
 
     // Check if the item added is a drink or a sauce.
@@ -691,7 +755,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     const item = currentMenuItems.find(i => i.id === itemId) || (typeof sushiMenu !== 'undefined' ? sushiMenu.find(i => i.id === itemId) : null);
     if (!item) return;
 
-    if (item.isAvailable === false) {
+    if (!isMenuItemAvailable(item)) {
         showToast(currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable', true);
         return;
     }
@@ -725,9 +789,9 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
 
     if (!modalOverlay || !container) return;
 
-    const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
-    const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
-    
+    const name = resolveItemName(item, lang);
+    const desc = resolveItemDescription(item, lang);
+
     // Dynamic ingredients from Admin (ingredients_ar)
     const ingredientText = lang === 'ar' ? (item.ingredients_ar || item.ingredients) : (item.ingredients_en || item.ingredients);
 
@@ -1051,7 +1115,7 @@ function addCustomizedToCart() {
     const cartItem = {
         cartId: Date.now().toString(),
         id: item.id,
-        name: lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar),
+        name: resolveItemName(item, lang),
         price: customizationChoices.computedPrice,
         quantity: 1,
         image: item.images[0],
@@ -1599,7 +1663,7 @@ function setMenuMode(mode) {
             btnGrid.className = "px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center transition-all duration-300 active:scale-95 text-slate-400 hover:text-white";
         }
 
-        renderDynamicFlipbook();
+        ensureFlipbookRendered();
     } else {
         if (bookWrapper) bookWrapper.classList.add('hidden');
         if (categorySlider) categorySlider.classList.remove('hidden');
@@ -1618,27 +1682,32 @@ function setMenuMode(mode) {
 }
 
 function updateFlipbook() {
+    const mobile = isFlipbookMobile();
+
     for (let i = 1; i <= maxFlipbookPages; i++) {
         const page = document.getElementById(`book-page-${i}`);
         if (!page) continue;
 
+        if (mobile) {
+            const farFromView = i < currentFlipbookPage - 1 || i > currentFlipbookPage + 1;
+            page.classList.toggle('book-page-offscreen', farFromView);
+        } else {
+            page.classList.remove('book-page-offscreen');
+        }
+
         if (i < currentFlipbookPage) {
-            // Flipped to the left
             page.classList.add('flipped');
             page.style.zIndex = i;
 
-            // Enable pointer events on the back side if it is the immediately flipped page
             if (i === currentFlipbookPage - 1) {
                 page.classList.add('active-page');
             } else {
                 page.classList.remove('active-page');
             }
         } else {
-            // Not flipped (on the right)
             page.classList.remove('flipped');
             page.style.zIndex = (maxFlipbookPages - i + 10);
 
-            // Enable pointer events on the front side if it is the current top page
             if (i === currentFlipbookPage) {
                 page.classList.add('active-page');
             } else {
@@ -1646,9 +1715,6 @@ function updateFlipbook() {
             }
         }
     }
-
-    // Update progress tracker
-    // Element removed from HTML as per user request
 }
 
 function flipbookNextPage() {
@@ -1766,7 +1832,7 @@ function switchView(viewName) {
             if (ind) ind.classList.remove('hidden');
         }
     }
-    // Only scroll to top on actual view switch
+    refreshScrollReveal();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1897,21 +1963,6 @@ function setCommentRating(stars) {
     });
 }
 
-function getCategoryDisplayName(key, lang) {
-    if (!key) return lang === 'ar' ? 'قسم جديد' : 'New Category';
-
-    const category = (currentCategories || []).find(cat =>
-        cat.id === key || cat.name === key || cat.dbName === key || cat.name_ar === key || cat.name_en === key
-    );
-
-    if (category) {
-        if (lang === 'ar') return category.name_ar || category.name || key;
-        return category.name_en || category.name || category.name_ar || key;
-    }
-
-    return key;
-}
-
 function buildMenuPages(activeItems) {
     const pages = [];
     const seen = new Set();
@@ -1965,7 +2016,7 @@ function renderDynamicFlipbook() {
     const currency = translations[lang] ? translations[lang].price_currency : 'جم';
 
     // Filter available items
-    const activeItems = currentMenuItems.filter(item => item.available !== false);
+    const activeItems = currentMenuItems.filter(isMenuItemAvailable);
     const menuPages = buildMenuPages(activeItems);
 
     if (menuPages.length > 0) {
@@ -1975,7 +2026,7 @@ function renderDynamicFlipbook() {
             pageElement.className = 'book-page';
             pageElement.id = `book-page-${pageNum}`;
 
-            const categoryTitle = getCategoryDisplayName(pageData.category, lang);
+            const categoryTitle = getCategoryDisplayName(pageData.category, lang, currentCategories);
             const categoryMeta = pageData.totalSegments > 1
                 ? `${categoryTitle} · ${lang === 'ar' ? 'الجزء' : 'Part'} ${pageData.segment}/${pageData.totalSegments}`
                 : categoryTitle;
@@ -2003,7 +2054,7 @@ function renderDynamicFlipbook() {
 
             let backHtml = '';
             if (index < menuPages.length - 1) {
-                const nextTitle = getCategoryDisplayName(menuPages[index + 1].category, lang);
+                const nextTitle = getCategoryDisplayName(menuPages[index + 1].category, lang, currentCategories);
                 backHtml = `
                     <div class="page-back flex flex-col justify-between p-6 md:p-8 bg-[#0b272a] border-y-2 border-l-2 border-[#d4a17b]/40 rounded-l-3xl shadow-inner">
                         <div class="my-auto text-center">
@@ -2090,12 +2141,14 @@ function renderDynamicFlipbook() {
     maxFlipbookPages = book.querySelectorAll('.book-page').length;
     currentFlipbookPage = Math.min(currentFlipbookPage, maxFlipbookPages);
     updateFlipbook();
+    refreshScrollReveal();
 }
 
 function renderBookItemHtml(item, lang, currency) {
-    const name = lang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name || item.name_ar);
-    const desc = lang === 'ar' ? (item.description_ar || item.description) : (item.description_en || item.description || item.description_ar);
-    const imageSrc = item.images && item.images.length > 0 ? item.images[0] : '';
+    const name = resolveItemName(item, lang);
+    const desc = resolveItemDescription(item, lang);
+    const imageSrc = getItemPrimaryImage(item);
+    const imgWidth = isFlipbookMobile() ? 180 : 400;
 
     const hasOptions = !!item.options;
     const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -2106,7 +2159,7 @@ function renderBookItemHtml(item, lang, currency) {
     return `
         <div onclick="${buttonAction}" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
             <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
-                <img src="${optimizeCloudinaryUrl(imageSrc, 400)}" class="w-full h-full object-cover" alt="${name}">
+                <img src="${optimizeCloudinaryUrl(imageSrc, imgWidth)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async">
             </div>
             <div class="flex-grow flex flex-col justify-between text-start min-w-0">
                 <div>

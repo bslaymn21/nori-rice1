@@ -330,7 +330,7 @@ function renderMenuGrid() {
 
             <div class="p-6 space-y-4 flex-grow flex flex-col justify-between bg-white dark:bg-slate-900/50">
                 <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                    ${item.description_ar || 'لا يوجد وصف متاح لهذه الوجبة.'}
+                    ${item.description_ar || item.description || 'لا يوجد وصف متاح لهذه الوجبة.'}
                 </p>
 
                 <!-- Options Summary Tags -->
@@ -834,7 +834,15 @@ function generateQRCode() {
     if (container) container.innerHTML = "";
     if (mobileContainer) mobileContainer.innerHTML = "";
 
-    const menuUrl = window.location.origin + "/index.html?ref=qr";
+    let menuUrl;
+    try {
+        menuUrl = new URL('../index.html?ref=qr', window.location.href).href;
+    } catch {
+        menuUrl = `${window.location.origin}/index.html?ref=qr`;
+    }
+
+    const urlHint = document.getElementById('qr-menu-url-hint');
+    if (urlHint) urlHint.textContent = menuUrl;
 
     const qr = new QRCode(document.createElement('div'), {
         text: menuUrl,
@@ -1107,6 +1115,7 @@ async function handleFormSubmit(e) {
             oldPrice: document.getElementById('item-has-discount')?.checked && document.getElementById('item-old-price').value ? parseFloat(document.getElementById('item-old-price').value) : null,
             images: finalUrls,
             description_ar: document.getElementById('item-desc-ar').value,
+            description: document.getElementById('item-desc-ar').value,
             ingredients_ar: document.getElementById('item-ingredients-ar').value,
             showOnHome: true,
             featured: document.getElementById('item-featured')?.checked || false,
@@ -1235,7 +1244,7 @@ function editItem(id) {
         if (discountFieldsEl) discountFieldsEl.classList.add('hidden');
     }
 
-    document.getElementById('item-desc-ar').value = item.description_ar || '';
+    document.getElementById('item-desc-ar').value = item.description_ar || item.description || '';
     document.getElementById('item-ingredients-ar').value = item.ingredients_ar || '';
     const featuredEl = document.getElementById('item-featured');
     if (featuredEl) featuredEl.checked = item.featured || false;
@@ -1712,7 +1721,7 @@ function calculateDiscountPercentage() {
 
 async function toggleAvailability(id, status) {
     try {
-        await saveMenuItem({ id, isAvailable: status });
+        await saveMenuItem({ id, isAvailable: status, available: status });
         showNotification(status ? 'الوجبة متاحة الآن ✨' : 'الوجبة غير متاحة حالياً 🛑');
         const idx = currentData.findIndex(i => i.id === id);
         if (idx !== -1) {

@@ -868,23 +868,63 @@ body.rtl-mode .cart-drawer.open {
         display: none !important;
     }
 
-    /* Enhance 3D perspective for mobile */
+    .flipbook-outer {
+        perspective: 1000px;
+        -webkit-perspective: 1000px;
+    }
+
     .sushi-book {
-        -webkit-perspective: 2000px;
-        perspective: 2000px;
         max-width: 100%;
         width: calc(100% - 32px);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+        transition: none;
     }
 
     .book-page {
         -webkit-transform-style: preserve-3d;
         transform-style: preserve-3d;
+        will-change: auto;
+        -webkit-perspective: none;
+        perspective: none;
+        transition: transform 0.42s ease-out, opacity 0.32s ease-out, z-index 0s;
+    }
+
+    .book-page.active-page {
+        will-change: transform;
+    }
+
+    .book-page.book-page-offscreen {
+        display: none !important;
+    }
+
+    .book-page::before {
+        display: none;
+    }
+
+    .book-page.flipped {
+        transform: rotateY(-180deg) translateZ(0);
+        -webkit-transform: rotateY(-180deg) translateZ(0);
+        transition: transform 0.42s ease-out, opacity 0.32s ease-out, z-index 0s 0.42s;
     }
 
     .page-front,
     .page-back {
         -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
+        transition: none;
+        box-shadow: inset 0 0 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .page-front::after,
+    .page-back::after {
+        width: 16px;
+    }
+}
+
+@media (max-width: 839px) and (prefers-reduced-motion: reduce) {
+    .book-page,
+    .book-page.flipped {
+        transition: none !important;
     }
 }
 
@@ -957,16 +997,13 @@ p,
     }
 
     .sushi-book {
-        height: 78vh !important;
-        max-height: 750px !important;
-        min-height: 560px !important;
+        height: min(72vh, 640px) !important;
+        max-height: 640px !important;
+        min-height: 480px !important;
         width: calc(100vw - 20px) !important;
         max-width: 450px !important;
         margin: 0 auto;
         border-radius: 20px;
-        box-shadow: 0 25px 50px rgba(0,0,0,0.8), -8px 0 25px rgba(212,161,123,0.3) !important;
-        -webkit-transform: translateZ(0);
-        transform: translateZ(0);
     }
 }
 
@@ -988,4 +1025,110 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 input[type="number"] {
     -moz-appearance: textfield;
+}
+
+/* ==========================================================================
+   SCROLL REVEAL (lightweight, mobile-friendly)
+   ========================================================================== */
+html {
+    scroll-behavior: smooth;
+}
+
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .reveal-on-scroll {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   MOBILE MASTERPIECE POLISH
+   ========================================================================== */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+
+    .site-header {
+        padding-top: env(safe-area-inset-top, 0);
+        background: rgba(11, 39, 42, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .hero-section {
+        margin-bottom: 1.5rem;
+        border-radius: 0 0 2rem 2rem;
+        overflow: hidden;
+    }
+
+    .hero-section .hero-img-bg {
+        min-height: 52vh;
+        object-fit: cover;
+    }
+
+    .hero-section h1 {
+        font-size: clamp(2rem, 9vw, 2.75rem) !important;
+        text-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+    }
+
+    .menu-mode-toggle {
+        width: 100%;
+        max-width: 22rem;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .menu-mode-toggle button {
+        flex: 1;
+        min-height: 44px;
+    }
+
+    .menu-card-luxury {
+        border-radius: 1.35rem;
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35), 4px 4px 0 #d4a17b;
+        content-visibility: auto;
+        contain-intrinsic-size: 320px;
+    }
+
+    .menu-card-luxury:active {
+        transform: scale(0.985);
+    }
+
+    #menu-items-grid {
+        gap: 1.25rem !important;
+    }
+
+    .mobile-bottom-nav {
+        padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0));
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(212, 161, 123, 0.12);
+    }
+
+    #mobile-cart-fab {
+        bottom: calc(5.5rem + env(safe-area-inset-bottom, 0));
+    }
+
+    #site-toast {
+        bottom: calc(6.5rem + env(safe-area-inset-bottom, 0));
+    }
 }

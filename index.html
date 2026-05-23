@@ -3,16 +3,50 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description"
-        content="Experience premium luxury sushi at Nori & Rice. Interactive visual table booking, dynamic menus, and customized Japanese gourmet rolls." />
+        content="نوري ورايس — مطعم سوشي فاخر في الإسكندرية. طلب أكل ياباني أونلاين: رولز، نيجيري، ساشيمي، تمبورا. منيو تفاعلي وتوصيل عبر واتساب." />
     <meta name="keywords"
-        content="Sushi Restaurant, Nori and Rice, Luxury Sushi, Table Booking, Interactive Seating Chart, Custom Sushi Rolls, Alexandria Seafood" />
-    <title>نوري & رايس | لاونج السوشي الفاخر</title>
+        content="سوشي, مطعم سوشي, نوري ورايس, Nori Rice, أكل ياباني, طلب أكل, توصيل سوشي, إسكندرية, رولز سوشي, نيجيري, ساشيمي, مطعم إسكندرية, sushi alexandria, japanese food egypt" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0b272a" />
+    <link rel="canonical" href="https://nori-rice.web.app/" />
+
+    <meta property="og:type" content="restaurant" />
+    <meta property="og:locale" content="ar_EG" />
+    <meta property="og:site_name" content="Nori &amp; Rice" />
+    <meta property="og:title" content="نوري &amp; رايس | لاونج السوشي الفاخر — الإسكندرية" />
+    <meta property="og:description"
+        content="منيو سوشي تفاعلي، طلب أونلاين، وتوصيل سريع. تجربة يابانية فاخرة في الإسكندرية." />
+    <meta property="og:image" content="./asseat/only logo remove background.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="نوري &amp; رايس | سوشي فاخر" />
+    <meta name="twitter:description" content="اطلب سوشي ياباني أصلي من نوري ورايس — الإسكندرية" />
+
+    <title>نوري &amp; رايس | مطعم سوشي فاخر — طلب أكل إسكندرية</title>
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "Nori & Rice",
+      "alternateName": "نوري ورايس",
+      "servesCuisine": ["Japanese", "Sushi", "Asian"],
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Alexandria",
+        "addressCountry": "EG"
+      },
+      "description": "مطعم سوشي فاخر في الإسكندرية — منيو تفاعلي وطلب عبر واتساب.",
+      "url": "https://nori-rice.web.app/",
+      "menu": "https://nori-rice.web.app/index.html"
+    }
+  </script>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png"
-        href="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=32&q=80">
+    <link rel="icon" type="image/png" href="./asseat/only logo remove background.png">
 
     <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +98,7 @@
     </div>
 
     <!-- --- Header & Navigation Bar --- -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-white/5 transition-all duration-300">
+    <header class="site-header sticky top-0 z-50 glass-panel border-b border-white/5 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
 
             <!-- Elegant Brand Name -->
@@ -101,7 +135,7 @@
     </header>
 
     <!-- --- Premium Hero Banner Section --- -->
-    <section id="hero-section" class="relative overflow-hidden mb-16">
+    <section id="hero-section" class="hero-section relative overflow-hidden mb-16 reveal-on-scroll">
         <div class="hero-slider-wrap">
             <img class="hero-img-bg"
                 src="https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=1600&q=80"
@@ -131,11 +165,11 @@
 
         <div id="home-view" class="view-panel">
             <!-- ==================== MENU SECTION ==================== -->
-            <section id="menu-section" class="scroll-mt-24 mb-24">
+            <section id="menu-section" class="scroll-mt-24 mb-24 reveal-on-scroll">
 
                 <!-- Section Header -->
                 <div
-                    class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-white/5 pb-6">
+                    class="menu-section-head flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-white/5 pb-6 reveal-on-scroll">
                     <div>
                         <span class="text-xs text-primary font-black uppercase tracking-[4px]">NORI & RICE
                             SELECTIONS</span>
@@ -145,8 +179,8 @@
                 </div>
 
                 <!-- Menu Mode Toggle Switch -->
-                <div class="flex justify-center mb-10">
-                    <div class="bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center gap-1">
+                <div class="flex justify-center mb-10 reveal-on-scroll">
+                    <div class="menu-mode-toggle bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center gap-1">
                         <button id="toggle-book-mode" onclick="setMenuMode('book')"
                             class="px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 bg-primary text-white">
                             <span class="material-symbols-outlined text-sm">menu_book</span>
@@ -161,7 +195,7 @@
                 </div>
 
                 <!-- --- Shoppable Interactive Book Section --- -->
-                <div id="book-menu-wrapper" class="w-full hidden flex-col items-center justify-center py-6">
+                <div id="book-menu-wrapper" class="w-full hidden flex-col items-center justify-center py-6 reveal-on-scroll">
                     <!-- Flipbook Container -->
                     <div class="flipbook-outer flex items-center justify-center w-full max-w-[900px] overflow-visible relative px-4">
 
@@ -232,14 +266,14 @@
                 </div>
 
                 <!-- Menu Grid layout (Initially hidden in Book mode) -->
-                <div id="menu-items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden">
+                <div id="menu-items-grid" class="menu-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden reveal-on-scroll">
                     <!-- Loaded dynamically via js/app.js -->
                 </div>
             </section>
         </div> <!-- Close home-view -->
 
         <!-- ==================== COMMENTS VIEW PANEL ==================== -->
-        <div id="comments-view" class="view-panel hidden">
+        <div id="comments-view" class="view-panel hidden reveal-on-scroll">
             <section id="comments-section" class="scroll-mt-24 mb-24">
                 <div class="glass-card p-8 md:p-12 mb-12">
                     <div class="text-center max-w-2xl mx-auto mb-12 animate-slide-up">
@@ -324,7 +358,7 @@
         </div> <!-- Close comments-view -->
 
         <!-- ==================== CONTACT VIEW PANEL ==================== -->
-        <div id="contact-view" class="view-panel hidden">
+        <div id="contact-view" class="view-panel hidden reveal-on-scroll">
             <!-- ==================== CONTACT SECTION ==================== -->
             <section id="contact-section" class="scroll-mt-24">
                 <div class="glass-card p-8 md:p-12 max-w-2xl mx-auto">
