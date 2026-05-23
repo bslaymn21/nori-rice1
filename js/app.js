@@ -1645,29 +1645,12 @@ function initFlipbookSwipes() {
         const diffX = e.changedTouches[0].clientX - startX;
         const diffY = e.changedTouches[0].clientY - startY;
         
-        // Ensure horizontal swipe is dominant and exceeds threshold of 75px
+        // Horizontal swipe: follow finger on screen (independent of dir="rtl")
         if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY)) {
-            // In RTL (Arabic), swipe directions are reversed
-            const isRTL = document.documentElement.dir === 'rtl';
-            
-            if (isRTL) {
-                // RTL MODE: Right swipe (positive diffX) goes to next page, Left swipe (negative diffX) goes to previous
-                if (diffX > 0) {
-                    // Dragging left to right -> Page flips forward in RTL
-                    flipbookNextPage();
-                } else {
-                    // Dragging right to left -> Page flips backward in RTL
-                    flipbookPrevPage();
-                }
+            if (diffX < 0) {
+                flipbookNextPage();
             } else {
-                // LTR MODE: Left swipe (negative diffX) goes to next page, Right swipe (positive diffX) goes to previous
-                if (diffX < 0) {
-                    // Dragging right to left -> Page flips forward in LTR
-                    flipbookNextPage();
-                } else {
-                    // Dragging left to right -> Page flips backward in LTR
-                    flipbookPrevPage();
-                }
+                flipbookPrevPage();
             }
         }
     }, { passive: true });
