@@ -20,12 +20,14 @@ export function initScrollReveal() {
     scrollRevealObserver = new IntersectionObserver(
         (entries) => {
             entries.forEach((entry) => {
-                if (!entry.isIntersecting) return;
-                entry.target.classList.add('is-visible');
-                scrollRevealObserver.unobserve(entry.target);
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                } else {
+                    entry.target.classList.remove('is-visible');
+                }
             });
         },
-        { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+        { root: null, rootMargin: '0px 0px -5% 0px', threshold: 0.1 }
     );
 
     elements.forEach((el, index) => {

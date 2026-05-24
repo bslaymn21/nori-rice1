@@ -58,6 +58,7 @@ body {
     font-family: var(--font-ar);
     /* Default is Arabic */
     overflow-x: hidden;
+    overscroll-behavior-y: none; /* Disables pull-to-refresh for an app-like feel */
     line-height: 1.6;
     background-image:
         radial-gradient(circle at 10% 20%, rgba(212, 161, 123, 0.04) 0%, transparent 40%),
@@ -1004,17 +1005,19 @@ html {
 
 .reveal-on-scroll {
     opacity: 0;
-    transform: translate3d(0, 28px, 0);
-    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: var(--reveal-delay, 0ms);
+    transform: translate3d(0, 40px, 0) scale(0.95);
+    transition: opacity 0.3s ease-in, transform 0.3s ease-in; /* Fast hide when scrolling out */
+    transition-delay: 0ms !important; /* No delay when hiding */
     will-change: opacity, transform;
 }
 
 .reveal-on-scroll.is-visible {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
-    will-change: auto;
+    transform: translate3d(0, 0, 0) scale(1);
+    /* Very chic and strong curve that feels fast but settles gently */
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms) !important; /* Only delay when revealing */
 }
 
 @media (prefers-reduced-motion: reduce) {

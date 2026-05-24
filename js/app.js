@@ -585,8 +585,12 @@ function renderCategories() {
 
         let bubbleContent = '';
         if (cat.id === 'all') {
-            // Render text in the bubble instead of an image
-            bubbleContent = `<div class="w-full h-full rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white font-bold text-xs">${cat.name}</div>`;
+            // Render a solid premium gold gradient for the 'All' button
+            bubbleContent = `
+                <div class="w-full h-full rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-white/20 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/20 blur-md"></div>
+                    <span class="text-[#0b272a] font-black text-sm z-10 drop-shadow-sm">${cat.name}</span>
+                </div>`;
         } else {
             bubbleContent = `<img src="${imgUrl}" alt="${cat.name}">`;
         }
@@ -2239,7 +2243,7 @@ function renderBookItemHtml(item, lang, currency) {
             <div class="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             
             <!-- Image Container -->
-            <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden flex-shrink-0 relative border border-white/5 shadow-2xl group-hover:scale-105 transition-transform duration-500">
+            <div class="w-[90px] h-[90px] md:w-[110px] md:h-[110px] rounded-2xl overflow-hidden flex-shrink-0 relative border border-white/5 shadow-2xl group-hover:scale-105 transition-transform duration-500">
                 <img src="${optimizeCloudinaryUrl(imageSrc, imgWidth)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async">
                 <div class="absolute inset-0 bg-black/10"></div>
             </div>
