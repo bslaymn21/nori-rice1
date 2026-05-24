@@ -160,6 +160,15 @@ function optimizeCloudinaryUrl(url, width = 800) {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Browser History Handling
+    window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.view) {
+            switchView(e.state.view, false);
+        } else {
+            switchView('home', false);
+        }
+    });
+
     // Attach Global Window Bindings for inline HTML handlers
     window.switchView = switchView;
     window.toggleLanguage = toggleLanguage;
@@ -1738,22 +1747,33 @@ function setMenuMode(mode) {
 function updateFlipbook() {
     const activeIdx = currentFlipbookPage;
     const mobile = isFlipbookMobile();
+    const book = document.getElementById('sushi-book');
 
     for (let i = 1; i <= maxFlipbookPages; i++) {
         const page = document.getElementById(`book-page-${i}`);
         if (!page) continue;
 
         if (i < activeIdx) {
-            // Page is flipped (hidden on mobile, on the left on desktop)
             page.classList.add('flipped');
             page.style.zIndex = i;
             page.classList.toggle('active-page', i === activeIdx - 1);
         } else {
-            // Page is on the right (visible)
             page.classList.remove('flipped');
             page.style.zIndex = (maxFlipbookPages - i + 10);
             page.classList.toggle('active-page', i === activeIdx);
         }
+    }
+
+    if (!mobile && book) {
+        if (activeIdx === 1) {
+            book.style.transform = 'translateX(-25%)'; // Center cover correctly in 920px container
+        } else if (activeIdx === maxFlipbookPages && maxFlipbookPages % 2 === 0) {
+            book.style.transform = 'translateX(25%)'; // Center back cover
+        } else {
+            book.style.transform = 'translateX(0)';
+        }
+    } else if (book) {
+        book.style.transform = 'none';
     }
 }
 
@@ -1803,7 +1823,11 @@ function initFlipbookSwipes() {
 }
 
 // SPA Routing system for View switching (Menu vs Contact vs Comments)
-function switchView(viewName) {
+function switchView(viewName, pushState = true) {
+    if (pushState) {
+        window.history.pushState({ view: viewName }, '', `#${viewName}`);
+    }
+
     const homeView = document.getElementById('home-view');
     const contactView = document.getElementById('contact-view');
     const commentsView = document.getElementById('comments-view');

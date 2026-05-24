@@ -201,13 +201,13 @@
 
                         <!-- Book Navigation Buttons (Left/Right Arrows) - Visible on desktop only -->
                         <button id="flipbook-prev-button" type="button"
-                            class="absolute left-0 md:-left-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            class="hidden md:flex absolute left-0 md:-left-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white hover:text-[#0b272a] rounded-full items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 shadow-lg hover:shadow-primary/50"
                             aria-label="Previous page">
-                            <span class="material-symbols-outlined">arrow_back_ios</span>
+                            <span class="material-symbols-outlined font-black">arrow_back_ios_new</span>
                         </button>
 
                         <!-- The actual 3D Book -->
-                        <div class="sushi-book" id="sushi-book">
+                        <div class="sushi-book" id="sushi-book" style="transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);">
                             <!-- Page 1 (Cover Front & Back) -->
                             <div class="book-page active-page" id="book-page-1" style="z-index: 10;">
                                 <div
@@ -225,11 +225,14 @@
                                     <div
                                         class="flex flex-col items-center gap-2 bg-white/5 backdrop-blur-md px-8 py-4 rounded-[24px] border border-[#d4a17b]/30 shadow-2xl group cursor-pointer hover:bg-primary/10 transition-all duration-500">
                                         <div class="relative">
-                                            <span class="material-symbols-outlined text-2xl text-[#d4a17b] animate-bounce">swipe</span>
+                                            <span class="material-symbols-outlined text-2xl text-[#d4a17b] animate-bounce md:hidden">swipe</span>
+                                            <span class="material-symbols-outlined text-2xl text-[#d4a17b] animate-bounce hidden md:block">pan_tool_alt</span>
                                             <div class="absolute -inset-2 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
                                         </div>
-                                        <span class="text-[10px] text-[#d4a17b] font-black uppercase tracking-[3px]"
+                                        <span class="text-[10px] text-[#d4a17b] font-black uppercase tracking-[3px] md:hidden"
                                             data-i18n="tap_to_flip">اسحب لتصفح القائمة</span>
+                                        <span class="text-[10px] text-[#d4a17b] font-black uppercase tracking-[3px] hidden md:block"
+                                            data-i18n="click_to_flip">انقر لتصفح القائمة</span>
                                     </div>
                                 </div>
                                 <div
@@ -254,9 +257,9 @@
 
                         <!-- Book Navigation Buttons (Left/Right Arrows) -->
                         <button id="flipbook-next-button" type="button"
-                            class="absolute right-0 md:-right-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            class="hidden md:flex absolute right-0 md:-right-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white hover:text-[#0b272a] rounded-full items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 shadow-lg hover:shadow-primary/50"
                             aria-label="Next page">
-                            <span class="material-symbols-outlined">arrow_forward_ios</span>
+                            <span class="material-symbols-outlined font-black">arrow_forward_ios</span>
                         </button>
                     </div>
                 </div>
