@@ -653,10 +653,7 @@ function renderMenu() {
             tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#c18c64] border border-[#c18c64]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">local_fire_department</span>${translations[lang].tag_special}</span>`;
         }
 
-        const configuredUpsell = getConfiguredUpsellIds();
-        if (configuredUpsell.includes(item.id)) {
-            tagsHtml += `<span class="px-3.5 py-1.5 bg-emerald-500 text-[#0b272a] border border-[#0b272a]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">shopping_cart</span>إضافة مقترحة</span>`;
-        }
+        // 'إضافة مقترحة' badge removed from public product cards per user request.
 
         // Check if there is discount (Floating Price Tag on Top Left)
         let priceHtml = '';

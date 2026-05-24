@@ -230,11 +230,21 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Sidebar transition fixes for RTL (always translate to the right, off-screen) */
+        .translate-x-full {
+            transform: translateX(100%) !important;
+        }
+        @media (min-width: 1024px) {
+            .lg\:translate-x-0 {
+                transform: translateX(0) !important;
+            }
+        }
     </style>
 </head>
 
 <body class="antialiased transition-colors selection:bg-blue-100">
-    <div class="flex min-h-screen">
+    <div class="flex min-h-screen w-full overflow-x-hidden">
         <!-- Sidebar Overlay (Mobile) -->
         <div id="sidebar-overlay" onclick="toggleSidebar()"
             class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300">
@@ -316,7 +326,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-grow flex flex-col lg:ms-72 transition-all duration-300">
+        <main class="flex-grow min-w-0 flex flex-col lg:mr-72 mr-0 ml-0 lg:ml-0 transition-all duration-300">
             <!-- Top Bar -->
             <header class="glass-topbar py-3 px-6 md:px-10 sticky top-0 z-40">
                 <div class="max-w-[1600px] mx-auto flex justify-between items-center">
@@ -382,7 +392,7 @@
                 <!-- Dashboard Tab -->
                 <div id="content-dashboard" class="space-y-10 animate-in">
                     <!-- Stat Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8">
                         <div class="premium-card p-8 flex flex-col justify-between">
                             <div class="flex justify-between items-start mb-6">
                                 <div
@@ -567,7 +577,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-10"
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-10"
                         id="menu-items-grid">
                         <!-- Items injected by admin.js -->
                     </div>
@@ -589,7 +599,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10" id="offers-grid">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-10" id="offers-grid">
                         <!-- Offers injected by admin.js -->
                     </div>
                 </div>
@@ -625,7 +635,7 @@
                             </button>
                         </div>
 
-                        <div id="upsell-selected-preview" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 min-h-[80px]"></div>
+                        <div id="upsell-selected-preview" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3 mb-6 min-h-[80px]"></div>
 
                         <div class="mb-4">
                             <input type="search" id="upsell-search" placeholder="بحث باسم الوجبة..."
@@ -634,7 +644,7 @@
 
                         <p class="text-sm font-black text-slate-700 dark:text-slate-200 mb-3">اختر من المنيو:</p>
                         <div id="upsell-items-grid"
-                            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[280px] max-h-[min(65vh,720px)] overflow-y-auto pr-1 pb-4 border border-slate-100 dark:border-white/10 rounded-2xl p-3 bg-slate-50/50 dark:bg-slate-900/30">
+                            class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4 min-h-[280px] max-h-[min(65vh,720px)] overflow-y-auto pr-1 pb-4 border border-slate-100 dark:border-white/10 rounded-2xl p-3 bg-slate-50/50 dark:bg-slate-900/30">
                             <p class="col-span-full text-center text-slate-400 font-bold py-16">جاري تحميل الأطباق...</p>
                         </div>
 
