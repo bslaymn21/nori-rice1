@@ -105,9 +105,47 @@ window.saveAddon = saveAddon;
     await refreshData();
     switchTab('dashboard');
 
-    // Init Drag and Drop for Categories if Sortable is available
-    initCategorySorting();
+    // Enable premium mouse drag-to-scroll for horizontal menus on desktop
+    enableDragToScroll(document.getElementById('categories-list'));
+    enableDragToScroll(document.getElementById('admin-menu-filters'));
 });
+
+function enableDragToScroll(el) {
+    if (!el) return;
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    el.style.cursor = 'grab';
+    el.style.userSelect = 'none';
+
+    el.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Only left click
+        if (e.target.closest('button, input, select, .order-dropdown, a, img')) return;
+        isDown = true;
+        el.style.cursor = 'grabbing';
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+    });
+
+    el.addEventListener('mouseleave', () => {
+        isDown = false;
+        el.style.cursor = 'grab';
+    });
+
+    el.addEventListener('mouseup', () => {
+        isDown = false;
+        el.style.cursor = 'grab';
+    });
+
+    el.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - startX) * 1.5; // Scroll speed
+        el.scrollLeft = scrollLeft - walk;
+    });
+}
 
 function logout() {
     localStorage.removeItem('admin_session');
@@ -2077,35 +2115,7 @@ async function reorderCategory(catId, newIndex) {
     }
 }
 
-function initCategorySorting() {
-    const list = document.getElementById('categories-list');
-    if (list && typeof Sortable !== 'undefined') {
-        Sortable.create(list, {
-            animation: 150,
-            ghostClass: 'opacity-50',
-            onEnd: async () => {
-                const chips = Array.from(list.querySelectorAll('.category-chip'));
-                const newOrderIds = chips.map(chip => chip.dataset.id);
-                
-                let cats = [...(window.nori_categories || [])];
-                let reorderedCats = newOrderIds.map(id => cats.find(c => c.id === id)).filter(Boolean);
-                
-                window.nori_categories = reorderedCats;
-                renderCategories(reorderedCats);
-                showNotification('جاري حفظ الترتيب... ⏳');
-
-                try {
-                    const updates = reorderedCats.map((cat, index) => saveCategory({ id: cat.id, order: index }));
-                    await Promise.all(updates);
-                    showNotification('تم تحديث ترتيب الأقسام بنجاح ✨');
-                } catch (e) {
-                    showNotification('فشل حفظ الترتيب', 'error');
-                    refreshData();
-                }
-            }
-        });
-    }
-}
+// Sortable category drag removed per user request. Using standard reorderCategory.
 
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.category-chip')) {
