@@ -201,7 +201,7 @@
 
                         <!-- Book Navigation Buttons (Left/Right Arrows) - Visible on desktop only -->
                         <button id="flipbook-prev-button" type="button"
-                            class="absolute left-0 md:-left-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            class="absolute left-0 md:-left-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
                             aria-label="Previous page">
                             <span class="material-symbols-outlined">arrow_back_ios</span>
                         </button>
@@ -223,10 +223,13 @@
                                             data-i18n="site_title">لاونج السوشي الفاخر</p>
                                     </div>
                                     <div
-                                        class="flex flex-col items-center gap-1.5 animate-pulse bg-[#0b272a] px-6 py-2.5 rounded-2xl border border-[#d4a17b]/30 shadow-inner">
-                                        <span class="text-[11px] text-[#d4a17b] font-black uppercase tracking-widest"
-                                            data-i18n="tap_to_flip">اسحب لفتح الكتاب</span>
-                                        <span class="material-symbols-outlined text-sm text-[#d4a17b]">swipe</span>
+                                        class="flex flex-col items-center gap-2 bg-white/5 backdrop-blur-md px-8 py-4 rounded-[24px] border border-[#d4a17b]/30 shadow-2xl group cursor-pointer hover:bg-primary/10 transition-all duration-500">
+                                        <div class="relative">
+                                            <span class="material-symbols-outlined text-2xl text-[#d4a17b] animate-bounce">swipe</span>
+                                            <div class="absolute -inset-2 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
+                                        </div>
+                                        <span class="text-[10px] text-[#d4a17b] font-black uppercase tracking-[3px]"
+                                            data-i18n="tap_to_flip">اسحب لتصفح القائمة</span>
                                     </div>
                                 </div>
                                 <div
@@ -251,7 +254,7 @@
 
                         <!-- Book Navigation Buttons (Left/Right Arrows) -->
                         <button id="flipbook-next-button" type="button"
-                            class="absolute right-0 md:-right-12 z-30 w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
+                            class="absolute right-0 md:-right-12 z-[60] w-12 h-12 bg-white/5 hover:bg-primary border border-white/10 text-white rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
                             aria-label="Next page">
                             <span class="material-symbols-outlined">arrow_forward_ios</span>
                         </button>

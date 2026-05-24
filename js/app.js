@@ -1736,37 +1736,22 @@ function setMenuMode(mode) {
 }
 
 function updateFlipbook() {
-    const mobile = isFlipbookMobile();
+    const activeIdx = currentFlipbookPage;
 
     for (let i = 1; i <= maxFlipbookPages; i++) {
         const page = document.getElementById(`book-page-${i}`);
         if (!page) continue;
 
-        if (mobile) {
-            const farFromView = i < currentFlipbookPage - 1 || i > currentFlipbookPage + 1;
-            page.classList.toggle('book-page-offscreen', farFromView);
-        } else {
-            page.classList.remove('book-page-offscreen');
-        }
-
-        if (i < currentFlipbookPage) {
+        if (i < activeIdx) {
+            // Page is on the left (flipped)
             page.classList.add('flipped');
             page.style.zIndex = i;
-
-            if (i === currentFlipbookPage - 1) {
-                page.classList.add('active-page');
-            } else {
-                page.classList.remove('active-page');
-            }
+            page.classList.toggle('active-page', i === activeIdx - 1);
         } else {
+            // Page is on the right
             page.classList.remove('flipped');
             page.style.zIndex = (maxFlipbookPages - i + 10);
-
-            if (i === currentFlipbookPage) {
-                page.classList.add('active-page');
-            } else {
-                page.classList.remove('active-page');
-            }
+            page.classList.toggle('active-page', i === activeIdx);
         }
     }
 }
@@ -1806,7 +1791,7 @@ function initFlipbookSwipes() {
         const diffY = e.changedTouches[0].clientY - startY;
         
         // Horizontal swipe: follow finger on screen (independent of dir="rtl")
-        if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
             if (diffX < 0) {
                 flipbookNextPage();
             } else {
@@ -1861,7 +1846,17 @@ function switchView(viewName) {
     if (viewName === 'home') {
         if (homeView) homeView.classList.remove('hidden');
         if (heroSection) heroSection.classList.remove('hidden');
-        if (flipbookWrapper) flipbookWrapper.classList.remove('hidden');
+        
+        // Only show book wrapper if we are in book mode
+        if (currentMenuMode === 'book') {
+            if (flipbookWrapper) flipbookWrapper.classList.remove('hidden');
+        } else {
+            const categorySlider = document.querySelector('.category-slider-container');
+            const menuGrid = document.getElementById('menu-items-grid');
+            if (categorySlider) categorySlider.classList.remove('hidden');
+            if (menuGrid) menuGrid.classList.remove('hidden');
+        }
+
         if (navHome) navHome.className = "text-sm font-bold text-white hover:text-primary transition-colors";
         if (mNavHome) {
             mNavHome.className = "m-nav-item active flex flex-col items-center justify-center relative w-16 h-full text-primary";
@@ -2192,7 +2187,10 @@ function renderDynamicFlipbook() {
         book.appendChild(pageElement);
     }
 
-    maxFlipbookPages = book.querySelectorAll('.book-page').length;
+    const pageCount = book.querySelectorAll('.book-page').length;
+    // On desktop, we allow one extra state to flip the last page and see the back cover
+    maxFlipbookPages = isFlipbookMobile() ? pageCount : pageCount + 1;
+    
     currentFlipbookPage = Math.min(currentFlipbookPage, maxFlipbookPages);
     updateFlipbook();
     refreshScrollReveal();
@@ -2202,28 +2200,45 @@ function renderBookItemHtml(item, lang, currency) {
     const name = resolveItemName(item, lang);
     const desc = resolveItemDescription(item, lang);
     const imageSrc = getItemPrimaryImage(item);
-    const imgWidth = isFlipbookMobile() ? 180 : 400;
+    const imgWidth = isFlipbookMobile() ? 240 : 400;
 
     const hasOptions = !!item.options;
     const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const buttonText = hasOptions ? (lang === 'ar' ? 'تخصيص' : 'Customize') : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
-    const buttonIcon = hasOptions ? 'tune' : 'visibility';
+    const buttonText = hasOptions ? (lang === 'ar' ? 'تخصيص' : 'Customize') : (lang === 'ar' ? 'أضف' : 'Add');
+    const buttonIcon = hasOptions ? 'tune' : 'add_shopping_cart';
     const buttonAction = `openCustomizer('${safeItemId}')`;
 
     return `
-        <div onclick="${buttonAction}" class="group cursor-pointer flex gap-4 p-4 rounded-2xl bg-[#0b272a] border-2 border-[#d4a17b]/40 hover:shadow-[4px_4px_0px_0px_#d4a17b] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all">
-            <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden flex-shrink-0 relative border border-[#d4a17b]/30">
+        <div onclick="${buttonAction}" class="group cursor-pointer flex gap-4 p-3.5 rounded-[24px] bg-gradient-to-br from-[#132f34] to-[#0b272a] border border-[#d4a17b]/20 hover:border-[#d4a17b]/60 hover:shadow-[0_10px_30px_-10px_rgba(212,161,123,0.3)] transition-all duration-500 relative overflow-hidden">
+            <!-- Glassy Shine Effect -->
+            <div class="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            
+            <!-- Image Container -->
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden flex-shrink-0 relative border border-white/5 shadow-2xl group-hover:scale-105 transition-transform duration-500">
                 <img src="${optimizeCloudinaryUrl(imageSrc, imgWidth)}" class="w-full h-full object-cover" alt="${name}" loading="lazy" decoding="async">
+                <div class="absolute inset-0 bg-black/10"></div>
             </div>
-            <div class="flex-grow flex flex-col justify-between text-start min-w-0">
+
+            <!-- Content -->
+            <div class="flex-grow flex flex-col justify-between text-start min-w-0 py-0.5">
                 <div>
-                    <h4 class="text-sm font-bold text-white leading-tight truncate">${name}</h4>
-                    <p class="text-[10px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">${desc || ''}</p>
+                    <div class="flex justify-between items-start gap-2">
+                        <h4 class="text-sm font-black text-white leading-tight truncate group-hover:text-primary transition-colors">${name}</h4>
+                    </div>
+                    <p class="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed font-medium">${desc || ''}</p>
                 </div>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-xs font-black text-[#d4a17b]">${item.price} ${currency}</span>
-                    <button onclick="event.stopPropagation(); ${buttonAction}" class="px-3 py-1.5 rounded-xl bg-primary text-[#0b272a] shadow-[2px_2px_0px_0px_#0b272a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 font-black text-[9px] border border-[#0b272a] transition-all flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[10px]">${buttonIcon}</span>
+                
+                <div class="flex justify-between items-center mt-2.5">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] text-primary/60 font-black uppercase tracking-tighter mb-0.5">${lang === 'ar' ? 'السعر' : 'PRICE'}</span>
+                        <span class="text-sm font-black text-white flex items-center gap-1">
+                            ${item.price}
+                            <span class="text-[10px] text-primary font-bold">${currency}</span>
+                        </span>
+                    </div>
+                    
+                    <button onclick="event.stopPropagation(); ${buttonAction}" class="h-9 px-4 rounded-xl bg-primary text-[#0b272a] font-black text-[10px] border border-primary/20 hover:bg-white hover:border-white transition-all flex items-center gap-1.5 shadow-lg active:scale-90">
+                        <span class="material-symbols-outlined text-[14px]">${buttonIcon}</span>
                         <span>${buttonText}</span>
                     </button>
                 </div>
