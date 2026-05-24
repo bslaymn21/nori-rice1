@@ -585,11 +585,10 @@ function renderCategories() {
 
         let bubbleContent = '';
         if (cat.id === 'all') {
-            // Render a solid premium gold gradient for the 'All' button
+            // Render a beautiful icon for 'All' instead of text inside
             bubbleContent = `
-                <div class="w-full h-full rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-white/20 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/20 blur-md"></div>
-                    <span class="text-[#0b272a] font-black text-sm z-10 drop-shadow-sm">${cat.name}</span>
+                <div class="w-full h-full rounded-full bg-gradient-to-br from-[#132f34] to-[#0b272a] flex items-center justify-center shadow-inner relative overflow-hidden">
+                    <span class="material-symbols-outlined text-primary text-3xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">grid_view</span>
                 </div>`;
         } else {
             bubbleContent = `<img src="${imgUrl}" alt="${cat.name}">`;
@@ -600,7 +599,7 @@ function renderCategories() {
                 <div class="category-img-wrapper">
                     ${bubbleContent}
                 </div>
-                <span class="category-title">${cat.id === 'all' ? '' : cat.name}</span>
+                <span class="category-title">${cat.name}</span>
             </div>
         `;
     });
