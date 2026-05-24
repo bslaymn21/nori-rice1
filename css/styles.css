@@ -679,84 +679,101 @@ body.rtl-mode .cart-drawer.open {
     -webkit-transform-style: preserve-3d;
 }
 
-/* Simplified & High-Performance Flipbook Styles */
+/* --- CORE OPTIMIZED BOOK STYLES --- */
+.flipbook-outer {
+    perspective: 2000px;
+    -webkit-perspective: 2000px;
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+}
+
 .sushi-book {
     position: relative;
     width: 100%;
-    max-width: 460px;
-    height: 620px;
+    max-width: 450px;
+    height: 600px;
     transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .book-page {
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
     transform-origin: left center;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-    border-radius: 20px;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     will-change: transform;
+    pointer-events: none;
 }
 
 .book-page.active-page {
     pointer-events: auto;
+    z-index: 50 !important;
 }
 
-.page-front,
-.page-back {
+.page-front, .page-back {
     position: absolute;
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    background: #132f34;
-    border: 1px solid rgba(212, 161, 123, 0.15);
-    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
     border-radius: 20px;
+    background: #132f34;
+    border: 1px solid rgba(212, 161, 123, 0.2);
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+    overflow: hidden;
 }
 
 .page-back {
     transform: rotateY(180deg);
 }
 
-.book-page.flipped {
-    transform: rotateY(-180deg);
-}
-
-/* Hide navigation arrows on mobile */
+/* MOBILE OPTIMIZED EFFECT - PURE FADE SWITCH */
 @media (max-width: 839px) {
     .flipbook-outer > button {
         display: none !important;
     }
 
     .flipbook-outer {
-        perspective: 1500px;
-        -webkit-perspective: 1500px;
-        padding: 0 10px;
+        perspective: none !important; /* Disable 3D to save CPU */
+        -webkit-perspective: none !important;
+        padding: 0;
     }
     
     .sushi-book {
-        height: 600px;
+        height: 580px;
+        max-width: 95%;
+        box-shadow: none;
+        transform: none !important;
     }
 
     .book-page {
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease-in-out;
+        /* Simple transition for mobile */
+        transition: opacity 0.3s ease-in-out, visibility 0.3s !important;
+        transform: none !important; /* No rotation on mobile */
+        border-radius: 24px;
     }
 
     .book-page.flipped {
-        /* Fade out and rotate effect on mobile */
-        transform: rotateY(-180deg) scale(0.9);
+        /* The page disappears completely */
         opacity: 0 !important;
-        pointer-events: none;
-        visibility: hidden;
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out, visibility 0s 0.6s;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: none !important;
+    }
+
+    .book-page:not(.flipped) {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Page styling for mobile cards */
+    .page-front, .page-back {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid rgba(212, 161, 123, 0.1);
     }
 }
 
@@ -879,18 +896,38 @@ body.rtl-mode .cart-drawer.open {
 
 /* --- High-end Custom Buttons & Accent Overrides --- */
 .bg-primary {
-    background-color: var(--color-secondary) !important;
-    /* #c18c64 */
-    color: var(--color-bg-main) !important;
-    /* #0b272a */
+    background-color: #c18c64 !important;
+    color: #0b272a !important;
     font-weight: 900 !important;
 }
 
 .bg-primary:hover {
-    background-color: var(--color-primary) !important;
-    /* #d4a17b */
-    color: var(--color-bg-main) !important;
+    background-color: #d4a17b !important;
+    color: #0b272a !important;
     box-shadow: 0 0 18px rgba(212, 161, 123, 0.45) !important;
+}
+
+/* Better Category Slider for Mobile */
+.category-slider-container {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 0;
+}
+
+.category-track {
+    display: inline-flex;
+    gap: 12px;
+    padding: 0 16px;
+}
+
+.category-btn {
+    flex-shrink: 0;
+    padding: 10px 20px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 800;
 }
 
 /* Custom text and layout overrides for luxury premium feel */

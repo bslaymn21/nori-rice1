@@ -1737,18 +1737,19 @@ function setMenuMode(mode) {
 
 function updateFlipbook() {
     const activeIdx = currentFlipbookPage;
+    const mobile = isFlipbookMobile();
 
     for (let i = 1; i <= maxFlipbookPages; i++) {
         const page = document.getElementById(`book-page-${i}`);
         if (!page) continue;
 
         if (i < activeIdx) {
-            // Page is on the left (flipped)
+            // Page is flipped (hidden on mobile, on the left on desktop)
             page.classList.add('flipped');
             page.style.zIndex = i;
             page.classList.toggle('active-page', i === activeIdx - 1);
         } else {
-            // Page is on the right
+            // Page is on the right (visible)
             page.classList.remove('flipped');
             page.style.zIndex = (maxFlipbookPages - i + 10);
             page.classList.toggle('active-page', i === activeIdx);
