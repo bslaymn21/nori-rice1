@@ -1049,9 +1049,40 @@ function formatTimeEn(timeStr) {
 
 /**
  * --- WATERMARKING ---
+ * Pre-cached logo for guaranteed watermark on EVERY image.
  */
-function applyWatermark(file) {
+let _cachedWatermarkLogo = null;
+
+function preloadWatermarkLogo() {
     return new Promise((resolve) => {
+        if (_cachedWatermarkLogo) { resolve(_cachedWatermarkLogo); return; }
+        const logo = new Image();
+        logo.src = "../asseat/only logo remove background.png";
+        logo.onload = () => { _cachedWatermarkLogo = logo; resolve(logo); };
+        logo.onerror = () => {
+            console.error('Watermark logo failed to load, retrying...');
+            // Retry once with cache-busting
+            const retry = new Image();
+            retry.src = "../asseat/only logo remove background.png?" + Date.now();
+            retry.onload = () => { _cachedWatermarkLogo = retry; resolve(retry); };
+            retry.onerror = () => { console.error('Watermark logo failed to load after retry'); resolve(null); };
+        };
+    });
+}
+
+// Pre-load the logo as soon as admin.js runs
+preloadWatermarkLogo();
+
+function applyWatermark(file) {
+    return new Promise(async (resolve, reject) => {
+        // Ensure watermark logo is loaded
+        const wmLogo = await preloadWatermarkLogo();
+        if (!wmLogo) {
+            showNotification('⚠️ تعذر تحميل اللوجو المائي! لن يتم رفع الصورة بدون اللوجو.', 'error');
+            reject(new Error('Watermark logo not available'));
+            return;
+        }
+
         const img = new Image();
         img.src = URL.createObjectURL(file);
         img.onload = () => {
@@ -1075,26 +1106,33 @@ function applyWatermark(file) {
             canvas.width = width;
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
+            URL.revokeObjectURL(img.src); // Clean up memory
 
-            const wm = new Image();
-            wm.src = "../asseat/only logo remove background.png";
-            wm.onload = () => {
-                const wmWidth = canvas.width * 0.22;
-                const wmHeight = (wm.height / wm.width) * wmWidth;
-                ctx.save();
-                ctx.globalAlpha = 0.8;
-                ctx.shadowColor = "rgba(0,0,0,0.5)";
-                ctx.shadowBlur = 10;
-                ctx.drawImage(wm, canvas.width - wmWidth - 25, canvas.height - wmHeight - 25, wmWidth, wmHeight);
-                ctx.restore();
+            // Percentage-based sizing — works perfectly on ANY image size
+            const wmWidth = canvas.width * 0.22;
+            const wmHeight = (wmLogo.height / wmLogo.width) * wmWidth;
+            const padding = Math.max(canvas.width * 0.03, 5); // 3% padding, minimum 5px
 
-                canvas.toBlob((blob) => {
+            ctx.save();
+            ctx.globalAlpha = 0.8;
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = Math.max(canvas.width * 0.01, 3); // Proportional shadow blur
+            ctx.drawImage(wmLogo, canvas.width - wmWidth - padding, canvas.height - wmHeight - padding, wmWidth, wmHeight);
+            ctx.restore();
+
+            canvas.toBlob((blob) => {
+                if (blob) {
                     resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                }, 'image/jpeg', 0.75); // Compressed JPEG to 75% quality for excellent visual balance and tiny file size!
-            };
-            wm.onerror = () => resolve(file); // fallback
+                } else {
+                    showNotification('⚠️ فشل معالجة الصورة!', 'error');
+                    reject(new Error('Canvas toBlob failed'));
+                }
+            }, 'image/jpeg', 0.75); // Compressed JPEG to 75% quality for excellent visual balance and tiny file size!
         };
-        img.onerror = () => resolve(file);
+        img.onerror = () => {
+            showNotification('⚠️ فشل قراءة الصورة المختارة!', 'error');
+            reject(new Error('Source image failed to load'));
+        };
     });
 }
 
@@ -1760,8 +1798,10 @@ async function handleOfferFormSubmit(e) {
 
         let imageUrl = existingOfferUrl || '';
         if (selectedOfferFile) {
+            submitBtn.innerText = 'جاري معالجة صورة العرض...';
+            const watermarkedOfferFile = await applyWatermark(selectedOfferFile);
             submitBtn.innerText = 'جاري رفع صورة العرض...';
-            imageUrl = await uploadToCloudinary(selectedOfferFile);
+            imageUrl = await uploadToCloudinary(watermarkedOfferFile);
         }
 
         const offerId = document.getElementById('offer-id').value;

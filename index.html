@@ -713,6 +713,44 @@
     <script src="./js/translations.js"></script>
     <script src="./js/data.js"></script>
     <script type="module" src="./js/app.js"></script>
+
+    <!-- Image Protection: Prevent casual image theft -->
+    <script>
+        // Block right-click context menu on images
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+            }
+        });
+
+        // Prevent drag-to-save on images
+        document.addEventListener('dragstart', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+            }
+        });
+
+        // Block long-press save on mobile (iOS/Android)
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.target.style.webkitTouchCallout = 'none';
+                e.target.style.userSelect = 'none';
+                e.target.style.webkitUserSelect = 'none';
+            }
+        });
+    </script>
+
+    <style>
+        /* Prevent image selection and long-press save */
+        img {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            pointer-events: auto;
+        }
+    </style>
 </body>
 
 </html>
