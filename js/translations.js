@@ -69,7 +69,7 @@ const translations = {
         btn_submit_feedback: "إرسال التقييم",
         contact_info: "معلومات الاتصال",
         address_label: "العنوان",
-        address_value: "شارع كورنيش الإسكندرية، بجوار لوران، الإسكندرية",
+        address_value: "الشيخ زايد، الجيزة",
         phone_label: "رقم الهاتف والطلبات",
         hours_label: "أوقات العمل",
         hours_value: "يومياً من 12:00 ظهراً وحتى 02:00 صباحاً",
