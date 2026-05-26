@@ -830,7 +830,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     // Reset choices only on first open
     if (!preserveChoices) {
         customizationChoices = {
-            pieces: item.options?.pieces ? item.options.pieces[0] : 8,
+            pieces: (item.options?.pieces && item.options?.pieceMultiplier) ? item.options.pieces[0] : null,
             addons: [],
             size: item.options?.sizes?.length ? (typeof item.options.sizes[0] === 'string' ? item.options.sizes[0] : item.options.sizes[0].name) : null,
             method: item.options?.methods?.length ? (typeof item.options.methods[0] === 'string' ? item.options.methods[0] : item.options.methods[0].name) : null
@@ -863,7 +863,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
 
     // 1. Piece options selector
     let piecesHtml = '';
-    if (item.options?.pieces) {
+    if (item.options?.pieces?.length && !item.options?.pieceMultiplier) {
         piecesHtml = `
             <div class="mb-6">
                 <label class="block text-sm font-bold text-slate-300 mb-3">${translations[lang].piece_count}</label>
@@ -877,6 +877,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
             </div>
         `;
     }
+
 
     let sizesHtml = '';
     if (item.options?.sizes?.length) {
@@ -1480,11 +1481,12 @@ async function submitCartWithCustomer(customer) {
     const currency = translations[lang].price_currency;
     const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
     const mapsLink = resolveCustomerMapsLink(customer);
-    const sep = '______________';
+    const sep = '_________________________________________________________________________________';
+    const smallSep = '_____________________________________________________';
 
     let msg = `Nori&Rice\n`;
-    msg += `البيانات\n`;
     msg += `${sep}\n`;
+    msg += `البيانات\n`;
     msg += `الاسم : ${customer.name}\n`;
     msg += `رقم التواصل : ${customer.phone}\n`;
     msg += `العنوان : ${customer.address}\n`;
@@ -1493,12 +1495,15 @@ async function submitCartWithCustomer(customer) {
     }
     msg += `${sep}\n`;
     msg += `تفاصيل الاوردر\n`;
-    msg += `${sep}\n`;
 
     cart.forEach((item, index) => {
-        msg += `${index + 1}) ${item.name}\n`;
+        msg += `الاكل \n`;
+        msg += `${item.name}\n`;
         msg += `الكمية : ${item.quantity}\n`;
         msg += `السعر : ${item.price} ${currency}\n`;
+
+        let detailsString = 'لايوجد';
+        let addonsString = 'لايوجد';
 
         if (item.customizations) {
             const cust = item.customizations;
@@ -1508,16 +1513,20 @@ async function submitCartWithCustomer(customer) {
             if (cust.method) details.push(`النوع: ${cust.method}`);
 
             if (details.length > 0) {
-                msg += `التخصيص : ${details.join(' | ')}\n`;
+                detailsString = details.join(' | ');
             }
-
             if (cust.addons && cust.addons.length > 0) {
-                msg += `الإضافات : ${cust.addons.join(' + ')}\n`;
+                addonsString = cust.addons.join('\n');
             }
         }
+        
+        msg += `التخصيص : ${detailsString}\n`;
+        msg += `${sep}\n`;
+        msg += `الاضافات \n`;
+        msg += `${addonsString}\n`;
     });
 
-    msg += `${sep}\n`;
+    msg += `${smallSep}\n`;
     msg += `المجموع الكلي : ${totalPrice} ${currency}`;
 
     const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
