@@ -54,8 +54,11 @@
     <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=1200&q=80">
 
-    <!-- Material Symbols Outlined -->
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=Tajawal:wght@400;500;700;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
@@ -107,6 +110,7 @@
             <!-- Elegant Brand Name -->
             <a href="javascript:void(0)" onclick="switchView('home')" class="flex items-center select-none">
                 <img src="./asseat/only logo remove background.png" alt="Nori & Rice"
+                    fetchpriority="high"
                     class="h-14 md:h-16 object-contain" />
             </a>
 
@@ -141,7 +145,8 @@
     <section id="hero-section" class="hero-section relative overflow-hidden mb-16 reveal-on-scroll">
         <div class="hero-slider-wrap">
             <img class="hero-img-bg"
-                src="https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=1600&q=80"
+                fetchpriority="high"
+                src="https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=1200&q=80"
                 alt="Sushi Counter Lounge">
             <div class="hero-overlay-dark"></div>
 

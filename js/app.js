@@ -36,8 +36,15 @@ let customizationChoices = {
 };
 
 // --- Dynamic Admin Integration State ---
-let currentMenuItems = [];
-let currentCategories = [];
+let currentMenuItems = typeof sushiMenu !== 'undefined' ? [...sushiMenu] : [];
+let currentCategories = [
+    { id: "specialrolls", name: "specialrolls", name_ar: "رولز مميزة", order: 1 },
+    { id: "nigiri", name: "nigiri", name_ar: "نيجيري وجونكان", order: 2 },
+    { id: "sashimi", name: "sashimi", name_ar: "ساشيمي", order: 3 },
+    { id: "temaki", name: "temaki", name_ar: "تيماكي مخروطي", order: 4 },
+    { id: "appetizers", name: "appetizers", name_ar: "مقبلات ورامن", order: 5 },
+    { id: "drinks", name: "drinks", name_ar: "مشروبات وحلويات", order: 6 }
+];
 let globalSettings = null; // Store dynamic business settings
 let isRestaurantOpen = true; // Global state for working hours
 let promoTimerInterval = null;
@@ -159,7 +166,7 @@ function optimizeCloudinaryUrl(url, width = 800) {
 }
 
 // --- Initialization ---
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     // Browser History Handling
     window.addEventListener('popstate', (e) => {
         if (e.state && e.state.view) {
@@ -198,21 +205,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.closePromoModal = closePromoModal;
     window.resetFlipbook = resetFlipbook;
 
-    // Load Dynamic Admin Data from Firebase
-    try {
-        const [menuItems, cats, settings, feed, offers] = await Promise.all([
-            getMenuItems(),
-            getCategories(),
-            getGlobalSettings(),
-            getAllFeedback(),
-            getActiveOffers()
-        ]);
-        
-        if (menuItems) {
+    // Establish initial language settings
+    applyLanguage(currentLanguage);
+
+    // Initialize standard events
+    initEvents();
+
+    // Render dynamic Category Slider
+    renderCategories();
+
+    // Render Menu Items
+    renderMenu();
+
+    // Initialize 3D Flipbook state
+    updateFlipbook();
+    initFlipbookSwipes();
+
+    // Set default menu mode by screen size
+    const defaultMenuMode = window.innerWidth >= 768 ? 'book' : 'grid';
+    setMenuMode(defaultMenuMode);
+
+    // Check Restaurant Working Hours
+    checkRestaurantStatus();
+
+    // Update Cart Badge and UI
+    updateCartUI();
+
+    initScrollReveal();
+
+    // Load Dynamic Admin Data from Firebase (in the background)
+    Promise.all([
+        getMenuItems(),
+        getCategories(),
+        getGlobalSettings(),
+        getAllFeedback(),
+        getActiveOffers()
+    ]).then(([menuItems, cats, settings, feed, offers]) => {
+        if (menuItems && menuItems.length > 0) {
             currentMenuItems = menuItems;
             invalidateFlipbookCache();
         }
-        if (cats) {
+        if (cats && cats.length > 0) {
             currentCategories = cats;
             invalidateFlipbookCache();
         }
@@ -261,6 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (approvedFeed.length > 0) {
                 guestComments = approvedFeed;
                 localStorage.setItem('nori_comments', JSON.stringify(guestComments));
+                if (typeof renderComments === 'function') renderComments();
             }
         }
         
@@ -268,6 +302,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (offers && offers.length > 0) {
             displayPromoOffer(offers[0]);
         }
+
+        // Re-render components if data updated
+        renderCategories();
+        renderMenu();
+        if (currentMenuMode === 'book') ensureFlipbookRendered(true);
 
         // Track visitor once per day per browser (not every page load)
         const today = new Date().toISOString().split('T')[0];
@@ -287,37 +326,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 trackQRScan();
             }
         }
-    } catch(e) {
+    }).catch(e => {
         console.error("Error loading dynamic admin data:", e);
-    }
-
-    // Establish initial language settings
-    applyLanguage(currentLanguage);
-
-    // Initialize standard events
-    initEvents();
-
-    // Render dynamic Category Slider
-    renderCategories();
-
-    // Render Menu Items
-    renderMenu();
-
-    // Initialize 3D Flipbook state
-    updateFlipbook();
-    initFlipbookSwipes();
-
-    // Set default menu mode by screen size
-    const defaultMenuMode = window.innerWidth >= 768 ? 'book' : 'grid';
-    setMenuMode(defaultMenuMode);
-
-    // Check Restaurant Working Hours
-    checkRestaurantStatus();
-
-    // Update Cart Badge and UI
-    updateCartUI();
-
-    initScrollReveal();
+    });
 });
 
 // --- Promo Offer Popup Logic ---
