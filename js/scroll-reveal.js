@@ -1,39 +1,9 @@
 /**
- * Lightweight scroll reveal (GPU-friendly transforms only)
+ * Lightweight scroll reveal disabled for max performance
  */
-
-let scrollRevealObserver = null;
-
 export function initScrollReveal() {
-    if (scrollRevealObserver) {
-        scrollRevealObserver.disconnect();
-    }
-
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const elements = document.querySelectorAll('.reveal-on-scroll');
-
-    if (prefersReduced || !elements.length) {
-        elements.forEach(el => el.classList.add('is-visible'));
-        return;
-    }
-
-    scrollRevealObserver = new IntersectionObserver(
-        (entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                } else {
-                    entry.target.classList.remove('is-visible');
-                }
-            });
-        },
-        { root: null, rootMargin: '0px 0px -5% 0px', threshold: 0.1 }
-    );
-
-    elements.forEach((el, index) => {
-        el.style.setProperty('--reveal-delay', `${Math.min(index % 6, 5) * 60}ms`);
-        scrollRevealObserver.observe(el);
-    });
+    const elements = document.querySelectorAll('.reveal-on-scroll:not(.is-visible)');
+    elements.forEach(el => el.classList.add('is-visible'));
 }
 
 export function refreshScrollReveal() {
