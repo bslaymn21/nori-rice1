@@ -1779,10 +1779,10 @@ function updateFlipbook() {
         if (i < activeIdx) {
             page.classList.add('flipped');
             page.style.zIndex = i;
-            page.classList.toggle('active-page', i === activeIdx - 1);
+            page.classList.toggle('active-page', !mobile && i === activeIdx - 1);
         } else {
             page.classList.remove('flipped');
-            page.style.zIndex = (maxFlipbookPages - i + 10);
+            page.style.zIndex = mobile && i === activeIdx ? 50 : (maxFlipbookPages - i + 10);
             page.classList.toggle('active-page', i === activeIdx);
         }
     }
