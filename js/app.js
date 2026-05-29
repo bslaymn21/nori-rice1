@@ -23,11 +23,59 @@ import {
 
 import { initScrollReveal, refreshScrollReveal } from './scroll-reveal.js';
 
+function readJsonStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch (error) {
+        console.warn(`Resetting invalid localStorage value: ${key}`);
+        localStorage.removeItem(key);
+        return fallback;
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function escapeJsString(value) {
+    return String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/</g, '\\x3C');
+}
+
+let bodyScrollLockCount = 0;
+
+function lockBodyScroll() {
+    bodyScrollLockCount += 1;
+    document.body.style.overflow = 'hidden';
+}
+
+function unlockBodyScroll() {
+    bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+    if (bodyScrollLockCount === 0) {
+        document.body.style.overflow = '';
+    }
+}
+
 // --- Global Variables & App State ---
 let currentLanguage = 'ar'; // Always Arabic
-let currentCustomer = JSON.parse(localStorage.getItem('nori_customer') || 'null');
+let currentCustomer = readJsonStorage('nori_customer', null);
 let selectedCategory = 'all';
-let cart = JSON.parse(localStorage.getItem('nori_cart') || '[]');
+let cart = readJsonStorage('nori_cart', []);
 let activeItemForCustomization = null;
 let customizationChoices = {
     pieces: 8,
@@ -48,6 +96,9 @@ let currentCategories = [
 let globalSettings = null; // Store dynamic business settings
 let isRestaurantOpen = true; // Global state for working hours
 let promoTimerInterval = null;
+let feedbackLoadPromise = null;
+let feedbackLoaded = false;
+let offersLoadPromise = null;
 
 // --- Shoppable 3D Flipbook State ---
 let currentMenuMode = 'book';
@@ -125,6 +176,14 @@ function ensureFlipbookRendered(force = false) {
     requestAnimationFrame(() => {
         requestAnimationFrame(runRender);
     });
+}
+
+function runWhenIdle(callback, timeout = 2000) {
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(callback, { timeout });
+    } else {
+        setTimeout(callback, timeout);
+    }
 }
 
 // WhatsApp Contact (You can change it dynamically)
@@ -237,10 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.all([
         getMenuItems(),
         getCategories(),
-        getGlobalSettings(),
-        getAllFeedback(),
-        getActiveOffers()
-    ]).then(([menuItems, cats, settings, feed, offers]) => {
+        getGlobalSettings()
+    ]).then(([menuItems, cats, settings]) => {
         if (menuItems && menuItems.length > 0) {
             currentMenuItems = menuItems;
             invalidateFlipbookCache();
@@ -282,31 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyLanguage(currentLanguage); // Actually render the loaded settings into the HTML
             }
         }
-        if (feed && feed.length > 0) {
-            const approvedFeed = feed.filter(f => f.showOnHome !== false).map(f => ({
-                name: f.name || 'زائر كريم',
-                name_en: f.name || 'Valued Guest',
-                text: f.text || '',
-                text_en: f.text || '',
-                date: f.createdAt ? f.createdAt.split('T')[0] : '2026-05-18',
-                rating: f.rating || 5
-            }));
-            if (approvedFeed.length > 0) {
-                guestComments = approvedFeed;
-                localStorage.setItem('nori_comments', JSON.stringify(guestComments));
-                if (typeof renderComments === 'function') renderComments();
-            }
-        }
-        
-        // Check for Promo Offers
-        if (offers && offers.length > 0) {
-            displayPromoOffer(offers[0]);
-        }
-
         // Re-render components if data updated
         renderCategories();
         renderMenu();
         if (currentMenuMode === 'book') ensureFlipbookRendered(true);
+        loadPromoOffersWhenIdle();
 
         // Track visitor once per day per browser (not every page load)
         const today = new Date().toISOString().split('T')[0];
@@ -328,8 +365,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }).catch(e => {
         console.error("Error loading dynamic admin data:", e);
+        loadPromoOffersWhenIdle();
     });
 });
+
+function loadPromoOffersWhenIdle() {
+    if (offersLoadPromise) return offersLoadPromise;
+
+    offersLoadPromise = new Promise(resolve => {
+        runWhenIdle(() => {
+            getActiveOffers()
+                .then(offers => {
+                    if (offers && offers.length > 0) {
+                        displayPromoOffer(offers[0]);
+                    }
+                    resolve(offers || []);
+                })
+                .catch(error => {
+                    console.error("Error loading promo offers:", error);
+                    resolve([]);
+                });
+        }, 2500);
+    });
+
+    return offersLoadPromise;
+}
 
 // --- Promo Offer Popup Logic ---
 function displayPromoOffer(offer) {
@@ -440,15 +500,16 @@ function displayPromoOffer(offer) {
     // Show after a small delay
     setTimeout(() => {
         promoModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        lockBodyScroll();
     }, 1500);
 }
 
 function closePromoModal() {
     const promoModal = document.getElementById('promo-modal');
     if (promoModal) {
+        const wasOpen = !promoModal.classList.contains('hidden');
         promoModal.classList.add('hidden');
-        document.body.style.overflow = '';
+        if (wasOpen) unlockBodyScroll();
         if (promoTimerInterval) {
             clearInterval(promoTimerInterval);
             promoTimerInterval = null;
@@ -593,6 +654,9 @@ function renderCategories() {
         const imgUrl = cat.image 
             ? optimizeCloudinaryUrl(cat.image, 400) 
             : (categoryImages[cat.id] || categoryImages[cat.dbName] || "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=120&q=80");
+        const safeDbName = escapeJsString(cat.dbName);
+        const safeName = escapeHtml(cat.name);
+        const safeImgUrl = escapeAttr(imgUrl);
 
         let bubbleContent = '';
         if (cat.id === 'all') {
@@ -602,15 +666,15 @@ function renderCategories() {
                     <span class="material-symbols-outlined text-primary text-3xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">grid_view</span>
                 </div>`;
         } else {
-            bubbleContent = `<img src="${imgUrl}" alt="${cat.name}">`;
+            bubbleContent = `<img src="${safeImgUrl}" alt="${safeName}">`;
         }
 
         html += `
-            <div class="category-card ${isSelected ? 'active' : ''}" onclick="selectCategory('${cat.dbName}')">
+            <div class="category-card ${isSelected ? 'active' : ''}" onclick="selectCategory('${safeDbName}')">
                 <div class="category-img-wrapper">
                     ${bubbleContent}
                 </div>
-                <span class="category-title">${cat.name}</span>
+                <span class="category-title">${safeName}</span>
             </div>
         `;
     });
@@ -666,14 +730,21 @@ function renderMenu() {
         const desc = resolveItemDescription(item, lang);
         const imageSrc = optimizeCloudinaryUrl(getItemPrimaryImage(item), 600);
         const orderText = translations[lang].ordered_count.replace('{n}', item.timesOrdered || '40');
+        const safeName = escapeHtml(name);
+        const safeDesc = escapeHtml(desc);
+        const safeImageSrc = escapeAttr(imageSrc);
+        const safeOrderText = escapeHtml(orderText);
+        const safeCategory = escapeHtml(getCategoryDisplayName(item.category, lang, currentCategories));
+        const safePrice = escapeHtml(item.price);
+        const safeOldPrice = escapeHtml(item.oldPrice);
 
         // Check dynamic tags
         let tagsHtml = '';
         if (item.isPopular) {
-            tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#d4a17b] border border-[#d4a17b]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">star</span>${translations[lang].tag_bestseller}</span>`;
+            tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#d4a17b] border border-[#d4a17b]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">star</span>${escapeHtml(translations[lang].tag_bestseller)}</span>`;
         }
         if (item.isSpecial) {
-            tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#c18c64] border border-[#c18c64]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">local_fire_department</span>${translations[lang].tag_special}</span>`;
+            tagsHtml += `<span class="px-3.5 py-1.5 bg-[#0b272a] text-[#c18c64] border border-[#c18c64]/40 rounded-full text-[11px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-md"><span class="material-symbols-outlined text-[14px]">local_fire_department</span>${escapeHtml(translations[lang].tag_special)}</span>`;
         }
 
         // 'إضافة مقترحة' badge removed from public product cards per user request.
@@ -683,14 +754,14 @@ function renderMenu() {
         if (item.oldPrice) {
             priceHtml = `
                 <div class="absolute top-4 left-4 bg-[#c18c64] text-[#0b272a] px-4 py-2 font-black border-2 border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] text-xl rounded-xl flex items-center gap-2 z-10">
-                    <span class="line-through opacity-60 text-xs mr-1">${item.oldPrice} ${currency}</span>
-                    <span>${item.price} <span class="text-xs font-bold">${currency}</span></span>
+                    <span class="line-through opacity-60 text-xs mr-1">${safeOldPrice} ${escapeHtml(currency)}</span>
+                    <span>${safePrice} <span class="text-xs font-bold">${escapeHtml(currency)}</span></span>
                 </div>
             `;
         } else {
             priceHtml = `
                 <div class="absolute top-4 left-4 bg-[#c18c64] text-[#0b272a] px-4 py-2 font-black border-2 border-[#0b272a] shadow-[4px_4px_0px_0px_#0b272a] text-xl rounded-xl flex items-center gap-2 z-10">
-                    <span>${item.price} <span class="text-xs font-bold">${currency}</span></span>
+                    <span>${safePrice} <span class="text-xs font-bold">${escapeHtml(currency)}</span></span>
                 </div>
             `;
         }
@@ -698,7 +769,7 @@ function renderMenu() {
         const isAvailable = isMenuItemAvailable(item);
         const buttonText = item.options ? translations[lang].btn_customize : (lang === 'ar' ? 'عرض التفاصيل' : 'View Details');
         const buttonIcon = item.options ? 'tune' : 'visibility';
-        const safeItemId = String(item.id).replace(/'/g, "\\'").replace(/\"/g, '&quot;');
+        const safeItemId = escapeJsString(item.id);
         const buttonAction = isAvailable ? `openCustomizer('${safeItemId}')` : `() => showToast('${currentLanguage === 'ar' ? 'هذه الوجبة غير متوفرة حالياً' : 'This item is currently unavailable'}', true)`;
 
         // Check for featured badge
@@ -721,7 +792,7 @@ function renderMenu() {
                             <div class="text-white font-black text-xl">غير متوفر</div>
                         </div>
                     ` : ''}
-                    <img src="${imageSrc}" alt="${name}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" decoding="async">
+                    <img src="${safeImageSrc}" alt="${safeName}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" decoding="async">
                     
                     <!-- Floating Price Tag (Top Left) -->
                     ${priceHtml}
@@ -736,15 +807,15 @@ function renderMenu() {
                 <div class="p-6 flex-grow flex flex-col justify-between bg-[#132f34]">
                     <div>
                         <div class="flex justify-between items-start gap-2 mb-3">
-                            <h3 class="text-2xl font-black text-white group-hover:text-primary transition-colors leading-tight">${name}</h3>
-                            <span class="text-[10px] bg-[#0b272a] text-[#d4a17b] px-3 py-1 font-black border border-[#d4a17b]/40 rounded-lg shadow-sm uppercase flex-shrink-0">${getCategoryDisplayName(item.category, lang, currentCategories)}</span>
+                            <h3 class="text-2xl font-black text-white group-hover:text-primary transition-colors leading-tight">${safeName}</h3>
+                            <span class="text-[10px] bg-[#0b272a] text-[#d4a17b] px-3 py-1 font-black border border-[#d4a17b]/40 rounded-lg shadow-sm uppercase flex-shrink-0">${safeCategory}</span>
                         </div>
-                        <p class="text-sm text-slate-300 line-clamp-2 mb-4 leading-relaxed">${desc}</p>
+                        <p class="text-sm text-slate-300 line-clamp-2 mb-4 leading-relaxed">${safeDesc}</p>
                         
                         <!-- Popular ordering tracker info -->
                         <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-6">
                             <span class="material-symbols-outlined text-[14px]">visibility</span>
-                            <span>${orderText}</span>
+                            <span>${safeOrderText}</span>
                         </div>
                     </div>
                     
@@ -1045,7 +1116,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     `;
 
     modalOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
     updateCustomizerPrice();
 
     // Restore scroll position if it's an update
@@ -1063,8 +1134,10 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
 }
 
 function closeCustomizer() {
-    document.getElementById('customizer-modal').classList.remove('active');
-    document.body.style.overflow = '';
+    const modal = document.getElementById('customizer-modal');
+    const wasOpen = modal?.classList.contains('active');
+    if (modal) modal.classList.remove('active');
+    if (wasOpen) unlockBodyScroll();
     activeItemForCustomization = null;
 }
 
@@ -1920,6 +1993,7 @@ function switchView(viewName, pushState = true) {
             if (ind) ind.classList.remove('hidden');
         }
         renderComments();
+        loadFeedbackForComments().then(renderComments);
     } else if (viewName === 'contact') {
         if (contactView) contactView.classList.remove('hidden');
         if (navContact) navContact.className = "text-sm font-bold text-white hover:text-primary transition-colors";
@@ -1938,6 +2012,48 @@ function switchView(viewName, pushState = true) {
 // ==========================================================================
 
 let guestComments = [];
+try {
+    const cachedComments = JSON.parse(localStorage.getItem('nori_comments') || '[]');
+    if (Array.isArray(cachedComments)) {
+        guestComments = cachedComments;
+    }
+} catch (error) {
+    guestComments = [];
+}
+
+function normalizeFeedbackForDisplay(feed) {
+    return (feed || [])
+        .filter(f => f.showOnHome !== false)
+        .map(f => ({
+            name: f.name || 'زائر كريم',
+            name_en: f.name || 'Valued Guest',
+            text: f.text || '',
+            text_en: f.text || '',
+            date: f.createdAt ? f.createdAt.split('T')[0] : '2026-05-18',
+            rating: f.rating || 5
+        }));
+}
+
+function loadFeedbackForComments() {
+    if (feedbackLoaded) return Promise.resolve(guestComments);
+    if (feedbackLoadPromise) return feedbackLoadPromise;
+
+    feedbackLoadPromise = getAllFeedback()
+        .then(feed => {
+            const approvedFeed = normalizeFeedbackForDisplay(feed);
+            guestComments = approvedFeed;
+            localStorage.setItem('nori_comments', JSON.stringify(guestComments));
+            feedbackLoaded = true;
+            return guestComments;
+        })
+        .catch(error => {
+            console.error("Error loading feedback:", error);
+            feedbackLoadPromise = null;
+            return guestComments;
+        });
+
+    return feedbackLoadPromise;
+}
 
 function renderComments() {
     const container = document.getElementById('comments-list-container');
@@ -1961,6 +2077,7 @@ function renderComments() {
         const commentText = ((lang === 'ar' && c.text) ? c.text : (c.text_en || c.text)) || '';
         const authorInitial = authorName ? authorName.charAt(0) : 'ض';
         const displayDate = (c.date && c.date !== 'undefined') ? c.date : '';
+        const rating = Math.max(0, Math.min(5, Number(c.rating) || 5));
 
         html += `
             <div class="bg-white/5 border border-white/10 rounded-3xl p-6 glass-panel flex flex-col justify-between shadow-xl animate-slide-up">
@@ -1968,18 +2085,18 @@ function renderComments() {
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-black text-sm">
-                                ${authorInitial}
+                                ${escapeHtml(authorInitial)}
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-white">${authorName}</h4>
-                                <span class="text-[10px] text-slate-500">${displayDate}</span>
+                                <h4 class="text-sm font-bold text-white">${escapeHtml(authorName)}</h4>
+                                <span class="text-[10px] text-slate-500">${escapeHtml(displayDate)}</span>
                             </div>
                         </div>
                         <div class="flex text-amber-400 text-sm">
-                            ${'<span class="material-symbols-outlined text-base">star</span>'.repeat(c.rating || 5)}
+                            ${'<span class="material-symbols-outlined text-base">star</span>'.repeat(rating)}
                         </div>
                     </div>
-                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed font-normal">${commentText}</p>
+                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed font-normal">${escapeHtml(commentText)}</p>
                 </div>
             </div>
         `;
