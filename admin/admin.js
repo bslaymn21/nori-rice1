@@ -1471,7 +1471,8 @@ async function handleFormSubmit(e) {
         await refreshData();
     } catch (error) {
         console.error(error);
-        showNotification('حدث خطأ أثناء الرفع أو الحفظ ❌', 'error');
+        const msg = error?.message ? `خطأ: ${error.message}` : 'حدث خطأ أثناء الرفع أو الحفظ ❌';
+        showNotification(msg, 'error');
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = originalText;
