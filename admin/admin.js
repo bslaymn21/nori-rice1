@@ -1506,7 +1506,7 @@ function updatePreviews() {
         const div = document.createElement('div');
         div.className = "relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 shadow-sm";
         div.innerHTML = `
-            <img src="${url}" class="w-full h-full object-cover">
+            <img src="${url}" onerror="showNotification('فشل تحميل الصورة', 'error')" class="w-full h-full object-cover">
             <button onclick="removeImage(${i}, true)" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-xs">close</span>
             </button>
@@ -1519,7 +1519,7 @@ function updatePreviews() {
         const div = document.createElement('div');
         div.className = "relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-primary shadow-sm animate-pulse-slow";
         div.innerHTML = `
-            <img src="${url}" class="w-full h-full object-cover">
+            <img src="${url}" onerror="showNotification('فشل تحميل الصورة', 'error')" class="w-full h-full object-cover">
             <button onclick="removeImage(${i}, false)" class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-xs">close</span>
             </button>
