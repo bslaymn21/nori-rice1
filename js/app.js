@@ -292,6 +292,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initScrollReveal();
 
+    // Reset any stray scroll lock from modals or previous sessions
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+
     // Load Dynamic Admin Data from Firebase (in the background)
     Promise.all([
         getMenuItems(),

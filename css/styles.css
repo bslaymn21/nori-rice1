@@ -57,8 +57,10 @@ body {
     font-family: var(--font-ar);
     /* Default is Arabic */
     width: 100%;
+    min-height: 100vh;
     overflow-x: hidden;
-    overscroll-behavior-y: none; /* Disables pull-to-refresh for an app-like feel */
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
     line-height: 1.6;
     background-image:
         radial-gradient(circle at 10% 20%, rgba(212, 161, 123, 0.04) 0%, transparent 40%),
@@ -68,7 +70,9 @@ body {
 
 html {
     width: 100%;
+    min-height: 100%;
     overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Language Override Class */
