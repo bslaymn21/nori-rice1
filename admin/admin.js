@@ -1078,8 +1078,8 @@ function applyWatermark(file) {
         // Ensure watermark logo is loaded
         const wmLogo = await preloadWatermarkLogo();
         if (!wmLogo) {
-            showNotification('⚠️ تعذر تحميل اللوجو المائي! لن يتم رفع الصورة بدون اللوجو.', 'error');
-            reject(new Error('Watermark logo not available'));
+            console.warn('Watermark logo not available — uploading original image without watermark');
+            resolve(file);
             return;
         }
 
