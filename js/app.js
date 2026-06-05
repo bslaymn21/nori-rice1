@@ -1558,8 +1558,8 @@ async function submitCartWithCustomer(customer) {
     const currency = translations[lang].price_currency;
     const totalPrice = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
     const mapsLink = resolveCustomerMapsLink(customer);
-    const sep = '_________________________________________________________________________________';
-    const smallSep = '_____________________________________________________';
+    const sep = '_________________________________________';
+    const smallSep = '_________________________________________';
 
     let msg = `Nori&Rice\n`;
     msg += `${sep}\n`;
