@@ -928,7 +928,7 @@ function openCustomizer(itemId, preserveChoices = false, isUpdateOnly = false) {
     if (item.options?.types?.length) {
         typesHtml = `
             <div class="mb-4">
-                <span class="text-primary font-bold text-xs">${lang === 'ar' ? 'أصناف مع الوجبة / إضافات' : 'Comes with / Additions'}:</span>
+                <span class="text-primary font-bold text-xs">${lang === 'ar' ? 'صوصات مع الوجبه' : 'Sauces with meal'}:</span>
                 <div class="flex flex-wrap gap-2 mt-2">
                     ${item.options.types.map(t => `<span class="bg-[#d4a17b]/10 text-[#d4a17b] px-3 py-1 rounded-full text-xs font-bold border border-[#d4a17b]/20">${t}</span>`).join('')}
                 </div>
@@ -1844,6 +1844,20 @@ function setMenuMode(mode) {
     }
 }
 
+function preloadFlipbookImages(pageNum) {
+    const page = document.getElementById(`book-page-${pageNum}`);
+    if (!page) return;
+    const imgs = page.querySelectorAll('img');
+    imgs.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src && !img.classList.contains('preloaded')) {
+            img.classList.add('preloaded');
+            const preloader = new Image();
+            preloader.src = src;
+        }
+    });
+}
+
 function updateFlipbook() {
     const activeIdx = currentFlipbookPage;
     const mobile = isFlipbookMobile();
@@ -1864,11 +1878,13 @@ function updateFlipbook() {
         }
     }
 
+    preloadFlipbookImages(activeIdx + 1);
+
     if (!mobile && book) {
         if (activeIdx === 1) {
-            book.style.transform = 'translateX(-25%)'; // Center cover correctly in 920px container
+            book.style.transform = 'translateX(-25%)';
         } else if (activeIdx === maxFlipbookPages && maxFlipbookPages % 2 === 0) {
-            book.style.transform = 'translateX(25%)'; // Center back cover
+            book.style.transform = 'translateX(25%)';
         } else {
             book.style.transform = 'translateX(0)';
         }
