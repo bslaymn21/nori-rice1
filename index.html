@@ -186,21 +186,8 @@
                     </div>
                 </div>
 
-                <!-- Menu Mode Toggle Switch -->
-                <div class="flex justify-center mb-10 reveal-on-scroll">
-                    <div class="menu-mode-toggle bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center gap-1">
-                        <button id="toggle-book-mode" onclick="setMenuMode('book')"
-                            class="px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 bg-primary text-white">
-                            <span class="material-symbols-outlined text-sm">menu_book</span>
-                            <span data-i18n="menu_mode_book">كتاب المنيو التفاعلي</span>
-                        </button>
-                        <button id="toggle-grid-mode" onclick="setMenuMode('grid')"
-                            class="px-6 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 text-slate-400 hover:text-white">
-                            <span class="material-symbols-outlined text-sm">grid_view</span>
-                            <span data-i18n="menu_mode_grid">العرض الشبكي</span>
-                        </button>
-                    </div>
-                </div>
+                <!-- Menu Mode Toggle Switch (hidden - grid only) -->
+                <div class="hidden"></div>
 
                 <!-- --- Shoppable Interactive Book Section --- -->
                 <div id="book-menu-wrapper" class="w-full hidden flex-col items-center justify-center py-6 reveal-on-scroll">

@@ -281,8 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFlipbookSwipes();
 
     // Set default menu mode by screen size
-    const defaultMenuMode = window.innerWidth >= 768 ? 'book' : 'grid';
-    setMenuMode(defaultMenuMode);
+    setMenuMode('grid');
 
     // Check Restaurant Working Hours
     checkRestaurantStatus();
